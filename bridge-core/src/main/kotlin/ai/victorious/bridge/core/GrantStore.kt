@@ -147,6 +147,22 @@ class GrantStore(
         return result
     }
 
+    /**
+     * Ends every grant whose monotonic deadline has passed and notifies listeners. Without this a timed grant
+     * would only be noticed lazily on the next [check], leaving anything it started running past its deadline.
+     */
+    fun sweepExpired(): List<Int> {
+        val expired: List<Int>
+        synchronized(lock) {
+            val now = clock.elapsedMs()
+            expired = grants.values.filter { it.expiresElapsedMs != null && now >= it.expiresElapsedMs }.map { it.uid }
+            expired.forEach { grants.remove(it) }
+            if (expired.isNotEmpty()) persistLocked()
+        }
+        expired.forEach { onGrantEnded(it, GrantEndReason.EXPIRED) }
+        return expired
+    }
+
     /** True only if the caller currently holds unexpired, identity-verified LEGACY_FULL access. */
     fun isLegacyFullActive(uid: Int): Boolean = check(uid, Capability.LEGACY_FULL) is Decision.Allowed
 

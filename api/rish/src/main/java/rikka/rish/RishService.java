@@ -21,6 +21,29 @@ public abstract class RishService {
 
     private static final boolean IS_ROOT = Os.getuid() == 0;
 
+    /**
+     * Victorious: kills the shell (and its session) started on behalf of a calling pid. Used when access is revoked.
+     * @return 1 if a host was signalled, otherwise 0
+     */
+    public static int terminateHostsForCallingPid(int callingPid) {
+        RishHost host;
+        synchronized (HOSTS) {
+            host = HOSTS.remove(callingPid);
+        }
+        if (host == null) return 0;
+        int pid = host.getPid();
+        if (pid <= 1) return 0;
+        try {
+            android.system.Os.kill(-pid, android.system.OsConstants.SIGKILL);
+        } catch (Throwable ignored) {
+        }
+        try {
+            android.system.Os.kill(pid, android.system.OsConstants.SIGKILL);
+        } catch (Throwable ignored) {
+        }
+        return 1;
+    }
+
     private void createHost(
             String[] args, String[] env, String dir,
             byte tty,
@@ -52,13 +75,18 @@ public abstract class RishService {
         host.start();
         Log.d(TAG, "Forked " + host.getPid());
 
-        HOSTS.put(callingPid, host);
+        synchronized (HOSTS) {
+            HOSTS.put(callingPid, host);
+        }
     }
 
     private void setWindowSize(long size) {
         int callingPid = Binder.getCallingPid();
 
-        RishHost host = HOSTS.get(callingPid);
+        RishHost host;
+        synchronized (HOSTS) {
+            host = HOSTS.get(callingPid);
+        }
         if (host == null) {
             Log.d(TAG, "Not existing host created by " + callingPid);
             return;
@@ -70,7 +98,10 @@ public abstract class RishService {
     private int getExitCode() {
         int callingPid = Binder.getCallingPid();
 
-        RishHost host = HOSTS.get(callingPid);
+        RishHost host;
+        synchronized (HOSTS) {
+            host = HOSTS.get(callingPid);
+        }
         if (host == null) {
             Log.d(TAG, "Not existing host created by " + callingPid);
             return -1;

@@ -8,6 +8,7 @@ android {
     defaultConfig {
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
+        buildConfigField 'String', 'BRIDGE_APPLICATION_ID', "\"${rootProject.ext.bridgeApplicationId}\""
     }
     buildTypes {
         debug {

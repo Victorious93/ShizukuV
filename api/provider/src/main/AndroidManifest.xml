@@ -2,11 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+    <!-- Victorious: no automatic uses-permission here. The LEGACY full-access permission is opt-in for the
+         consuming app; scoped capability clients must not carry it. -->
 
     <application tools:ignore="AllowBackup,GoogleAppIndexingWarning">
         <meta-data
-            android:name="moe.shizuku.client.V3_SUPPORT"
+            android:name="ai.victorious.bridge.client.SUPPORT"
             android:value="true" />
     </application>
 

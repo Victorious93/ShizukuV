@@ -3,6 +3,7 @@ package moe.shizuku.server;
 import moe.shizuku.server.IRemoteProcess;
 import moe.shizuku.server.IShizukuApplication;
 import moe.shizuku.server.IShizukuServiceConnection;
+import moe.shizuku.server.IBridgeCallback;
 
 interface IShizukuService {
 
@@ -45,4 +46,22 @@ interface IShizukuService {
     int getFlagsForUid(int uid, int mask) = 105;
 
     void updateFlagsForUid(int uid, int mask, int value) = 106;
- }
+
+    // ---- Victorious controlled capability API. New transaction codes only; no existing code changed. ----
+
+    // Capability negotiation: what this service supports and what the caller currently holds.
+    Bundle bridgeNegotiate(in Bundle clientInfo) = 200;
+
+    // Submit one controlled operation. The result is delivered once through the callback.
+    oneway void bridgeSubmit(in Bundle request, IBridgeCallback callback) = 201;
+
+    // Cancel one of the caller's own requests. False if unknown or finished.
+    boolean bridgeCancel(String requestId) = 202;
+
+    // Ask the owner to grant scoped capabilities (shown in the manager). Reply arrives through
+    // IShizukuApplication.dispatchRequestPermissionResult with the same requestCode.
+    oneway void bridgeRequestAccess(int requestCode, in String[] capabilities, in String[] fileRoots) = 203;
+
+    // Manager-only administration (grants, revoke, activity, policy, approvals, diagnostics).
+    Bundle bridgeManage(in Bundle command) = 210;
+}

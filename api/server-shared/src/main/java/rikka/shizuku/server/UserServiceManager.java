@@ -275,15 +275,18 @@ public abstract class UserServiceManager {
 
     }
 
-    public void removeUserServicesForPackage(String packageName) {
+    public int removeUserServicesForPackage(String packageName) {
         List<UserServiceRecord> list = packageUserServiceRecords.get(packageName);
+        int removed = 0;
         if (list != null) {
             for (UserServiceRecord record : list) {
                 record.removeSelf();
+                removed++;
                 LOGGER.i("Remove user service %s for package %s", record.token, packageName);
             }
             packageUserServiceRecords.remove(packageName);
         }
+        return removed;
     }
 
 }

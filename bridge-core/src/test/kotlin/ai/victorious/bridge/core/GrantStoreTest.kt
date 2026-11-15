@@ -157,4 +157,15 @@ class GrantStoreTest {
     @Test(expected = IllegalStateException::class) fun cannotGrantUnknownUid() {
         store().grant(99999, setOf(Capability.FILES_READ), GrantMode.SESSION)
     }
+
+    @Test fun sweepEndsExpiredGrantsProactivelyAndNotifies() {
+        val s = store()
+        s.grant(10123, setOf(Capability.LEGACY_FULL), GrantMode.TIMED_15_MIN)
+        s.grant(10124, setOf(Capability.FILES_READ), GrantMode.SESSION)
+        assertTrue(s.sweepExpired().isEmpty())
+        clock.advance(GrantStore.TIMED_DURATION_MS)
+        assertEquals(listOf(10123), s.sweepExpired())
+        assertTrue(ended.contains(10123 to GrantEndReason.EXPIRED))
+        assertTrue("non-timed grants are untouched", s.check(10124, Capability.FILES_READ) is Decision.Allowed)
+    }
 }

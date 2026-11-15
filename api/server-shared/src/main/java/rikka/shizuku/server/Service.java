@@ -15,7 +15,11 @@ import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import moe.shizuku.server.IRemoteProcess;
 import moe.shizuku.server.IShizukuApplication;
@@ -62,6 +66,63 @@ public abstract class Service<
     public abstract ClientMgr onCreateClientManager();
 
     public abstract ConfigMgr onCreateConfigManager();
+
+    /**
+     * Victorious: whether a client currently holds LEGACY full access. Evaluated on every call (never cached in the
+     * record), so revocation, expiry and identity changes take effect on connections that already exist.
+     * The default keeps upstream behaviour; the Victorious service overrides it to consult its grant store.
+     */
+    protected boolean isClientAllowed(ClientRecord clientRecord) {
+        return clientRecord.allowed;
+    }
+
+    // Victorious: processes started through newProcess, by caller uid, so revocation can stop them.
+    private final Map<Integer, List<RemoteProcessHolder>> processesByUid = new HashMap<>();
+
+    private void trackProcess(int uid, RemoteProcessHolder holder) {
+        synchronized (processesByUid) {
+            List<RemoteProcessHolder> l = processesByUid.get(uid);
+            if (l == null) {
+                l = new ArrayList<>();
+                processesByUid.put(uid, l);
+            }
+            // drop finished ones so the list stays bounded
+            List<RemoteProcessHolder> alive = new ArrayList<>();
+            for (RemoteProcessHolder h : l) {
+                try {
+                    if (h.alive()) alive.add(h);
+                } catch (RemoteException ignored) {
+                }
+            }
+            alive.add(holder);
+            processesByUid.put(uid, alive);
+        }
+    }
+
+    /** Kills every process this uid started through newProcess, and its rish shells. Returns how many were signalled. */
+    public final int terminateProcessesForUid(int uid) {
+        List<RemoteProcessHolder> l;
+        synchronized (processesByUid) {
+            l = processesByUid.remove(uid);
+        }
+        int n = 0;
+        if (l != null) {
+            for (RemoteProcessHolder h : l) {
+                try {
+                    if (h.alive()) {
+                        h.destroy();
+                        n++;
+                    }
+                } catch (Throwable t) {
+                    LOGGER.w(t, "terminateProcessesForUid");
+                }
+            }
+        }
+        for (ClientRecord r : clientManager.findClients(uid)) {
+            n += RishService.terminateHostsForCallingPid(r.pid);
+        }
+        return n;
+    }
 
     public final UserServiceMgr getUserServiceManager() {
         return userServiceManager;
@@ -124,7 +185,7 @@ public abstract class Service<
             throw new SecurityException(msg);
         }
 
-        if (!clientRecord.allowed) {
+        if (!isClientAllowed(clientRecord)) {
             String msg = "Permission Denial: " + func + " from pid="
                     + Binder.getCallingPid()
                     + " requires permission";
@@ -256,7 +317,7 @@ public abstract class Service<
             return true;
         }
 
-        return clientManager.requireClient(callingUid, callingPid).allowed;
+        return isClientAllowed(clientManager.requireClient(callingUid, callingPid));
     }
 
     @Override
@@ -271,7 +332,7 @@ public abstract class Service<
 
         ClientRecord clientRecord = clientManager.requireClient(callingUid, callingPid);
 
-        if (clientRecord.allowed) {
+        if (isClientAllowed(clientRecord)) {
             clientRecord.dispatchRequestPermissionResult(requestCode, true);
             return;
         }
@@ -319,7 +380,9 @@ public abstract class Service<
         ClientRecord clientRecord = clientManager.findClient(Binder.getCallingUid(), Binder.getCallingPid());
         IBinder token = clientRecord != null ? clientRecord.client.asBinder() : null;
 
-        return new RemoteProcessHolder(process, token);
+        RemoteProcessHolder holder = new RemoteProcessHolder(process, token);
+        trackProcess(Binder.getCallingUid(), holder);
+        return holder;
     }
 
     @CallSuper

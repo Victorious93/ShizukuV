@@ -45,6 +45,7 @@ include ':server', ':starter', ':shell'
 include ':manager'
 include ':common'
 include ':bridge-core'
+include ':bridge-sdk'
 
 def root = "api"
 

@@ -40,7 +40,11 @@ import java.util.List;
 import java.util.Objects;
 
 import kotlin.collections.ArraysKt;
+import ai.victorious.bridge.core.BridgeIdentity;
+import ai.victorious.bridge.core.BridgeProtocol;
+import ai.victorious.bridge.core.CallerIdentity;
 import moe.shizuku.api.BinderContainer;
+import moe.shizuku.server.IBridgeCallback;
 import moe.shizuku.common.util.BuildUtils;
 import moe.shizuku.common.util.OsUtils;
 import moe.shizuku.server.IShizukuApplication;
@@ -59,8 +63,8 @@ import rikka.shizuku.server.util.UserHandleCompat;
 public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuClientManager, ShizukuConfigManager> {
 
     public static void main(String[] args) {
-        DdmHandleAppName.setAppName("shizuku_server", 0);
-        RishConfig.setLibraryPath(System.getProperty("shizuku.library.path"));
+        DdmHandleAppName.setAppName("victorious_bridge_server", 0);
+        RishConfig.setLibraryPath(System.getProperty("victorious.bridge.library.path"));
 
         Looper.prepareMainLooper();
         new ShizukuService();
@@ -88,6 +92,8 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
     private final ShizukuClientManager clientManager;
     private final ShizukuConfigManager configManager;
     private final int managerAppId;
+    private final BridgeController bridge;
+    private final java.util.Set<String> managerSigners;
 
     public ShizukuService() {
         super();
@@ -111,6 +117,13 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
 
         configManager = getConfigManager();
         clientManager = getClientManager();
+
+        // Victorious: pin the manager's signing identity at start. Every manager-only call re-verifies it, so a package
+        // that merely shares the manager's name (or a replaced APK signed by someone else) is not treated as the manager.
+        managerSigners = new PackageIdentityResolver().resolve(managerAppId) != null
+                ? new PackageIdentityResolver().resolve(managerAppId).getSignerDigests() : java.util.Collections.emptySet();
+        bridge = new BridgeController(this);
+        bridge.start();
 
         ApkChangedObservers.start(ai.sourceDir, () -> {
             if (getManagerApplicationInfo() == null) {
@@ -144,7 +157,162 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
 
     @Override
     public boolean checkCallerManagerPermission(String func, int callingUid, int callingPid) {
-        return UserHandleCompat.getAppId(callingUid) == managerAppId;
+        return isVerifiedManager(callingUid);
+    }
+
+    /** Victorious: same app id AND the signing certificate pinned when the service started. Fails closed if none could be read. */
+    private boolean isVerifiedManager(int callingUid) {
+        if (UserHandleCompat.getAppId(callingUid) != managerAppId) return false;
+        if (managerSigners.isEmpty()) return false;
+        CallerIdentity now = new PackageIdentityResolver().resolve(callingUid);
+        return now != null && now.getSignerDigests().equals(managerSigners);
+    }
+
+    @Override
+    protected boolean isClientAllowed(ClientRecord clientRecord) {
+        // Legacy full access, evaluated per call: either the upstream-style runtime-permission/config route, or an explicit
+        // LEGACY_FULL grant in the grant store (which expires, is identity-bound and is revocable).
+        return clientRecord.allowed || bridge.getGrants().isLegacyFullActive(clientRecord.uid);
+    }
+
+    boolean isLegacyAllowedFor(ClientRecord record) {
+        return isClientAllowed(record);
+    }
+
+    /** True if the uid still has legacy access through something other than the grant store (runtime permission / config flag). */
+    boolean hasLegacyRouteOtherThanGrantStore(int uid) {
+        for (ClientRecord r : clientManager.findClients(uid)) {
+            if (r.allowed) return true;
+        }
+        ShizukuConfig.PackageEntry entry = configManager.find(uid);
+        return entry != null && entry.isAllowed();
+    }
+
+    int removeUserServicesForUid(int uid) {
+        int n = 0;
+        for (String pkg : PackageManagerApis.getPackagesForUidNoThrow(uid)) {
+            n += getUserServiceManager().removeUserServicesForPackage(pkg);
+        }
+        return n;
+    }
+
+    ShizukuClientManager clientManager() {
+        return clientManager;
+    }
+
+    boolean startManagerActivity(Intent intent, int userId) {
+        UserInfo userInfo = UserManagerApis.getUserInfo(userId);
+        boolean isWorkProfileUser = userInfo != null && (BuildUtils.atLeast30() ?
+                "android.os.usertype.profile.MANAGED".equals(userInfo.userType) :
+                (userInfo.flags & UserInfo.FLAG_MANAGED_PROFILE) != 0);
+        ActivityManagerApis.startActivityNoThrow(intent, null, isWorkProfileUser ? 0 : userId);
+        return true;
+    }
+
+    void showBridgeAccessConfirmation(int requestCode, @NonNull ClientRecord clientRecord, int userId, String[] caps, String[] roots) {
+        ApplicationInfo ai = PackageManagerApis.getApplicationInfoNoThrow(clientRecord.packageName, 0, userId);
+        if (ai == null) {
+            clientRecord.dispatchRequestPermissionResult(requestCode, false);
+            return;
+        }
+        Intent intent = new Intent(ServerConstants.REQUEST_PERMISSION_ACTION)
+                .setPackage(MANAGER_APPLICATION_ID)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
+                .putExtra("uid", clientRecord.uid)
+                .putExtra("pid", clientRecord.pid)
+                .putExtra("requestCode", requestCode)
+                .putExtra("applicationInfo", ai)
+                .putExtra(BridgeProtocol.EXTRA_REQUESTED_CAPS, caps)
+                .putExtra(BridgeProtocol.EXTRA_REQUESTED_ROOTS, roots);
+        startManagerActivity(intent, userId);
+    }
+
+    /** Explicit owner revoke for one uid: ends the grant, closes legacy routes, stops managed processes and user services. */
+    boolean revokeEverythingFor(int uid) {
+        boolean any = bridge.getGrants().revoke(uid);
+        for (ClientRecord r : clientManager.findClients(uid)) {
+            if (r.allowed) any = true;
+            r.allowed = false;
+        }
+        ShizukuConfig.PackageEntry entry = configManager.find(uid);
+        if (entry != null && entry.isAllowed()) {
+            any = true;
+            configManager.update(uid, null, ConfigManager.MASK_PERMISSION, 0);
+        }
+        for (String packageName : PackageManagerApis.getPackagesForUidNoThrow(uid)) {
+            try {
+                PackageInfo pi = PackageManagerApis.getPackageInfoNoThrow(packageName, PackageManager.GET_PERMISSIONS, UserHandleCompat.getUserId(uid));
+                if (pi != null && pi.requestedPermissions != null && ArraysKt.contains(pi.requestedPermissions, PERMISSION)) {
+                    PermissionManagerApis.revokeRuntimePermission(packageName, PERMISSION, UserHandleCompat.getUserId(uid));
+                }
+            } catch (Throwable t) {
+                LOGGER.w(t, "revoke runtime permission");
+            }
+        }
+        terminateProcessesForUid(uid);
+        removeUserServicesForUid(uid);
+        return any;
+    }
+
+    List<Integer> revokeEverything() {
+        List<Integer> uids = new ArrayList<>();
+        for (ai.victorious.bridge.core.Grant g : bridge.getGrants().list()) uids.add(g.getUid());
+        for (ClientRecord r : new ArrayList<>(clientManager.findClients(-1))) uids.add(r.uid);
+        for (ShizukuConfig.PackageEntry e : configEntriesSnapshot()) uids.add(e.uid);
+        List<Integer> done = new ArrayList<>();
+        for (int uid : new java.util.LinkedHashSet<>(uids)) {
+            if (UserHandleCompat.getAppId(uid) == managerAppId) continue;
+            revokeEverythingFor(uid);
+            done.add(uid);
+        }
+        bridge.cancelAllOperations(ai.victorious.bridge.core.ErrorCode.REVOKED);
+        return done;
+    }
+
+    private List<ShizukuConfig.PackageEntry> configEntriesSnapshot() {
+        List<ShizukuConfig.PackageEntry> l = new ArrayList<>();
+        for (int userId : UserManagerApis.getUserIdsNoThrow()) {
+            for (PackageInfo pi : PackageManagerApis.getInstalledPackagesNoThrow(0, userId)) {
+                if (pi.applicationInfo == null) continue;
+                ShizukuConfig.PackageEntry e = configManager.find(pi.applicationInfo.uid);
+                if (e != null && !l.contains(e)) l.add(e);
+            }
+        }
+        return l;
+    }
+
+    // ---- Victorious controlled capability API (new transaction codes 200+) ----
+
+    @Override
+    public Bundle bridgeNegotiate(Bundle clientInfo) {
+        return bridge.negotiate(clientManager.findClient(Binder.getCallingUid(), Binder.getCallingPid()));
+    }
+
+    @Override
+    public void bridgeSubmit(Bundle request, IBridgeCallback callback) {
+        bridge.submit(Binder.getCallingUid(), clientManager.findClient(Binder.getCallingUid(), Binder.getCallingPid()), request, callback);
+    }
+
+    @Override
+    public boolean bridgeCancel(String requestId) {
+        return bridge.cancel(Binder.getCallingUid(), requestId);
+    }
+
+    @Override
+    public void bridgeRequestAccess(int requestCode, String[] capabilities, String[] fileRoots) {
+        int callingUid = Binder.getCallingUid();
+        int callingPid = Binder.getCallingPid();
+        ClientRecord record = clientManager.findClient(callingUid, callingPid);
+        if (record == null) {
+            throw new IllegalStateException("Not an attached client");
+        }
+        bridge.requestScopedAccess(record, requestCode, capabilities, fileRoots, UserHandleCompat.getUserId(callingUid));
+    }
+
+    @Override
+    public Bundle bridgeManage(Bundle command) {
+        enforceManagerPermission("bridgeManage");
+        return bridge.manage(command);
     }
 
     private int checkCallingPermission() {
@@ -173,6 +341,8 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
     public void exit() {
         enforceManagerPermission("exit");
         LOGGER.i("exit");
+        bridge.lifecycle("service stopping on request");
+        bridge.shutdown();
         System.exit(0);
     }
 
@@ -207,6 +377,10 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
         }
 
         isManager = MANAGER_APPLICATION_ID.equals(requestPackageName);
+        if (isManager && !isVerifiedManager(callingUid)) {
+            LOGGER.w("package %s claims to be the manager but its signing identity does not match", requestPackageName);
+            throw new SecurityException("manager identity mismatch");
+        }
 
         if (clientManager.findClient(callingUid, callingPid) == null) {
             synchronized (this) {
@@ -235,7 +409,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
         reply.putString(BIND_APPLICATION_SERVER_SECONTEXT, OsUtils.getSELinuxContext());
         reply.putInt(BIND_APPLICATION_SERVER_PATCH_VERSION, ShizukuApiConstants.SERVER_PATCH_VERSION);
         if (!isManager) {
-            reply.putBoolean(BIND_APPLICATION_PERMISSION_GRANTED, Objects.requireNonNull(clientRecord).allowed);
+            reply.putBoolean(BIND_APPLICATION_PERMISSION_GRANTED, isClientAllowed(Objects.requireNonNull(clientRecord)));
             reply.putBoolean(BIND_APPLICATION_SHOULD_SHOW_REQUEST_PERMISSION_RATIONALE, false);
         } else {
             try {
@@ -244,6 +418,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
             } catch (RemoteException e) {
                 LOGGER.w(e, "grant WRITE_SECURE_SETTINGS");
             }
+            bridge.grantManager(callingUid);
         }
         try {
             application.bindApplication(reply);
@@ -277,6 +452,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
                 .putExtra("pid", callingPid)
                 .putExtra("requestCode", requestCode)
                 .putExtra("applicationInfo", ai);
+        bridge.noteLegacyRequest(callingUid, callingPid, requestCode);
         ActivityManagerApis.startActivityNoThrow(intent, null, isWorkProfileUser ? 0 : userId);
     }
 
@@ -293,6 +469,12 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
 
         boolean allowed = data.getBoolean(REQUEST_PERMISSION_REPLY_ALLOWED);
         boolean onetime = data.getBoolean(REQUEST_PERMISSION_REPLY_IS_ONETIME);
+        if (allowed) {
+            // Victorious: approvals now travel through bridgeManage(access.apply), which records mode, capabilities and
+            // identity. A bare "allowed" from this old entry point must not create access of unspecified scope.
+            LOGGER.w("dispatchPermissionConfirmationResult: ignoring allowed=true; use bridgeManage access.apply");
+            return;
+        }
 
         LOGGER.i("dispatchPermissionConfirmationResult: uid=%d, pid=%d, requestCode=%d, allowed=%s, onetime=%s",
                 requestUid, requestPid, requestCode, Boolean.toString(allowed), Boolean.toString(onetime));
@@ -383,9 +565,20 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
             boolean denied = (value & ConfigManager.FLAG_DENIED) != 0;
 
             List<ClientRecord> records = clientManager.findClients(uid);
+            if (allowed) {
+                try {
+                    bridge.getGrants().grant(uid, java.util.Collections.singleton(ai.victorious.bridge.core.Capability.LEGACY_FULL),
+                            ai.victorious.bridge.core.GrantMode.UNTIL_REVOKED, java.util.Collections.emptyList());
+                } catch (RuntimeException e) {
+                    LOGGER.w(e, "grant legacy");
+                }
+            } else {
+                bridge.getGrants().revoke(uid);
+                terminateProcessesForUid(uid);
+            }
             for (ClientRecord record : records) {
                 if (allowed) {
-                    record.allowed = true;
+                    // allowance is derived from the grant store on every call; nothing is cached on the record
                 } else {
                     record.allowed = false;
                     ActivityManagerApis.forceStopPackageNoThrow(record.packageName, UserHandleCompat.getUserId(record.uid));
@@ -443,10 +636,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
 
                 if (flags != 0) {
                     list.add(pi);
-                } else if (pi.applicationInfo.metaData != null
-                        && pi.applicationInfo.metaData.getBoolean("moe.shizuku.client.V3_SUPPORT", false)
-                        && pi.requestedPermissions != null
-                        && ArraysKt.contains(pi.requestedPermissions, PERMISSION)) {
+                } else if (isBridgeClient(pi)) {
                     list.add(pi);
                 }
             }
@@ -469,6 +659,16 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
         return super.onTransact(code, data, reply, flags);
     }
 
+    /** True for apps that declare the bridge provider (SDK meta-data) or the legacy permission. Used for Binder delivery and listing only. */
+    static boolean isBridgeClient(PackageInfo pi) {
+        if (pi == null) return false;
+        if (pi.applicationInfo != null && pi.applicationInfo.metaData != null
+                && pi.applicationInfo.metaData.getBoolean(BridgeIdentity.META_CLIENT_SUPPORT, false)) {
+            return true;
+        }
+        return pi.requestedPermissions != null && ArraysKt.contains(pi.requestedPermissions, PERMISSION);
+    }
+
     void sendBinderToClient() {
         for (int userId : UserManagerApis.getUserIdsNoThrow()) {
             sendBinderToClient(this, userId);
@@ -477,11 +677,11 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
 
     private static void sendBinderToClient(Binder binder, int userId) {
         try {
-            for (PackageInfo pi : PackageManagerApis.getInstalledPackagesNoThrow(PackageManager.GET_PERMISSIONS, userId)) {
-                if (pi == null || pi.requestedPermissions == null)
+            for (PackageInfo pi : PackageManagerApis.getInstalledPackagesNoThrow(PackageManager.GET_PERMISSIONS | PackageManager.GET_META_DATA, userId)) {
+                if (pi == null)
                     continue;
 
-                if (ArraysKt.contains(pi.requestedPermissions, PERMISSION)) {
+                if (isBridgeClient(pi)) {
                     sendBinderToUserApp(binder, pi.packageName, userId);
                 }
             }
@@ -517,7 +717,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
             LOGGER.e(tr, "Failed to add %d:%s to power save temp whitelist", userId, packageName);
         }
 
-        String name = packageName + ".shizuku";
+        String name = packageName + BridgeIdentity.PROVIDER_AUTHORITY_SUFFIX;
         IContentProvider provider = null;
 
         /*
@@ -557,7 +757,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
             }
 
             Bundle extra = new Bundle();
-            extra.putParcelable("moe.shizuku.privileged.api.intent.extra.BINDER", new BinderContainer(binder));
+            extra.putParcelable(BridgeIdentity.EXTRA_BINDER, new BinderContainer(binder));
 
             Bundle reply = IContentProviderUtils.callCompat(provider, null, name, "sendBinder", null, extra);
             if (reply != null) {

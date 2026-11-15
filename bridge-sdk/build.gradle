@@ -1,0 +1,26 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'ai.victorious.bridge.sdk'
+    buildFeatures {
+        buildConfig = false
+    }
+    kotlinOptions {
+        jvmTarget = "21"
+    }
+    defaultConfig {
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+}
+
+dependencies {
+    // The SDK exposes the same Binder protocol; clients need the Shizuku-API classes it is built on.
+    api project(':api')
+    api project(':provider')
+    api project(':aidl')
+    api project(':bridge-core')
+    implementation 'androidx.annotation:annotation:1.3.0'
+}
