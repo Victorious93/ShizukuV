@@ -35,7 +35,7 @@
 #error "BRIDGE_PACKAGE_NAME must be provided by the build (-DBRIDGE_PACKAGE_NAME=<application id>)"
 #endif
 #define PACKAGE_NAME BRIDGE_PACKAGE_NAME
-// Distinct from upstream's "shizuku_server" so starting this service never kills an upstream install's server.
+// Distinct from the upstream project's server process name so starting this service never kills an upstream install's server.
 #define SERVER_NAME "victorious_bridge_server"
 #define SERVER_CLASS_PATH "rikka.shizuku.server.ShizukuService"
 

@@ -62,7 +62,29 @@ object AuthorizationManager {
         return packages
     }
 
+    /** Snapshot of the service's grant store, refreshed with the app list. Display only; the service decides access. */
+    @Volatile
+    var grantsByUid: Map<Int, moe.shizuku.manager.bridge.GrantInfo> = emptyMap()
+
+    fun refreshGrants() {
+        grantsByUid = moe.shizuku.manager.bridge.BridgeAdmin.grants().associateBy { it.uid }
+    }
+
+    fun accessSummary(context: android.content.Context, uid: Int): String {
+        val legacyFlag = try { (Shizuku.getFlagsForUid(uid, MASK_PERMISSION) and FLAG_ALLOWED) == FLAG_ALLOWED } catch (_: Throwable) { false }
+        val g = grantsByUid[uid]
+        val legacy = legacyFlag || g?.capabilities?.contains(ai.victorious.bridge.core.Capability.LEGACY_FULL) == true
+        if (legacy) return context.getString(moe.shizuku.manager.R.string.apps_access_legacy) + expiry(context, g)
+        if (g == null) return context.getString(moe.shizuku.manager.R.string.apps_access_none)
+        val caps = g.capabilities.joinToString { it.id }
+        return context.getString(moe.shizuku.manager.R.string.apps_access_scoped, caps) + " (" + (g.mode?.id ?: "?") + ")" + expiry(context, g)
+    }
+
+    private fun expiry(context: android.content.Context, g: moe.shizuku.manager.bridge.GrantInfo?): String =
+        g?.remainingMs?.let { ", " + context.getString(moe.shizuku.manager.R.string.apps_access_expires, moe.shizuku.manager.bridge.formatDuration(it)) } ?: ""
+
     fun granted(packageName: String, uid: Int): Boolean {
+        if (grantsByUid.containsKey(uid)) return true
         return if (Shizuku.isPreV11()) {
             ShizukuSystemApis.checkPermission(Manifest.permission.LEGACY_API_V1, packageName, uid / 100000) == PackageManager.PERMISSION_GRANTED
         } else {

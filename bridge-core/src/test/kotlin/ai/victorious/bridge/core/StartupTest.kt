@@ -31,7 +31,7 @@ class StartupTest {
 
     private fun orch(l: StartupLauncher?, p: ReadinessProbe, s: MemStore, boot: String? = "boot-1", pol: RetryPolicy = RetryPolicy(),
                      onSuccess: suspend () -> Unit = {}) =
-        StartupOrchestrator(l, p, s, pol, { boot }, { 42L }, onSuccess)
+        StartupOrchestrator({ l }, p, s, pol, { boot }, { 42L }, onSuccess)
 
     @Test fun successRequiresReadinessNotJustASuccessfulShellInvocation() = runTest {
         val s = MemStore(); val l = FakeLauncher(listOf(LaunchOutcome.Launched)); val p = FakeProbe(readyAfterLaunch = false)

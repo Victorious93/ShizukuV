@@ -65,7 +65,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:banner="@mipmap/banner"
+            android:banner="@drawable/banner"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -110,6 +110,27 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".bridge.ConfirmOperationActivity"
+            android:directBootAware="true"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL"
+            android:theme="@style/GrantPermissions">
+            <intent-filter>
+                <action android:name="${applicationId}.intent.action.CONFIRM_OPERATION" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".bridge.ActivityHistoryActivity"
+            android:exported="false"
+            android:label="@string/activity_title" />
+        <activity
+            android:name=".bridge.DiagnosticsActivity"
+            android:exported="false"
+            android:label="@string/diagnostics_title" />
         <activity
             android:name=".legacy.ShellRequestHandlerActivity"
             android:directBootAware="true"

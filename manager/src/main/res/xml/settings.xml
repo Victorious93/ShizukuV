@@ -12,6 +12,67 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory
+        android:key="bridge_boot"
+        android:summary="@string/settings_boot_summary"
+        android:title="@string/settings_boot_section">
+
+        <rikka.material.preference.MaterialSwitchPreference
+            android:defaultValue="false"
+            android:key="boot_change_wireless_debugging"
+            android:title="@string/settings_boot_wireless" />
+
+        <rikka.material.preference.MaterialSwitchPreference
+            android:defaultValue="false"
+            android:key="boot_change_usb_debugging"
+            android:title="@string/settings_boot_usb" />
+
+        <rikka.material.preference.MaterialSwitchPreference
+            android:defaultValue="false"
+            android:key="boot_disable_adb_auth_timeout"
+            android:title="@string/settings_boot_timeout" />
+
+        <rikka.material.preference.MaterialSwitchPreference
+            android:defaultValue="false"
+            android:key="boot_restore_after_start"
+            android:title="@string/settings_boot_restore" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="bridge_policy"
+        android:title="@string/settings_policy_title">
+
+        <ListPreference
+            android:defaultValue="any"
+            android:entries="@array/bridge_backend_entries"
+            android:entryValues="@array/bridge_backend_values"
+            android:key="backend_policy"
+            android:summary="%s"
+            android:title="@string/settings_policy_title" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="bridge_profiles"
+        android:title="@string/settings_profiles_title">
+
+        <Preference
+            android:key="profile_import"
+            android:summary="Preview, apply and undo a settings profile (supported settings only; no keys or authorizations)."
+            android:title="Import and apply a profile" />
+
+        <Preference
+            android:key="profile_undo"
+            android:title="Undo last applied profile" />
+
+        <Preference
+            android:key="profile_export_sample"
+            android:summary="Writes a small example profile you can edit."
+            android:title="Export example profile" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/settings_language">
 
         <rikka.preference.SimpleMenuPreference

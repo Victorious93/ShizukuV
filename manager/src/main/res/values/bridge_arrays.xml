@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="bridge_backend_entries">
+        <item>Any (use what the service runs as)</item>
+        <item>ADB (shell) only</item>
+        <item>Root only</item>
+    </string-array>
+    <string-array name="bridge_backend_values">
+        <item>any</item>
+        <item>adb</item>
+        <item>root</item>
+    </string-array>
+</resources>

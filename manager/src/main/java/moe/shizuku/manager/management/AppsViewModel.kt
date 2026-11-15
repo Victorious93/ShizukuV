@@ -34,6 +34,7 @@ class AppsViewModel(context: Context) : ViewModel() {
     fun load(onlyCount: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                AuthorizationManager.refreshGrants()
                 val list: MutableList<PackageInfo> = ArrayList()
                 var count = 0
                 for (pi in AuthorizationManager.getPackages()) {

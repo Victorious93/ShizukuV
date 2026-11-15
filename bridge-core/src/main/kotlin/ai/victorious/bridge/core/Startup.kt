@@ -85,7 +85,7 @@ sealed class StartupResult {
  *    so the UI can show the last failure and the next trigger knows what happened.
  */
 class StartupOrchestrator(
-    private val launcher: StartupLauncher?,
+    private val launcherProvider: () -> StartupLauncher?,
     private val probe: ReadinessProbe,
     private val store: StartupStore,
     private val policy: RetryPolicy = RetryPolicy(),
@@ -103,6 +103,7 @@ class StartupOrchestrator(
         var attempts = 0
         var finished = false
         val boot = bootId()
+        val launcher = runCatching(launcherProvider).getOrNull()
         try {
             val prev = store.load()
             if (probe.awaitReady(0)) {
