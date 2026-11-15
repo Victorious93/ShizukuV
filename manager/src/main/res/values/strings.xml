@@ -190,6 +190,7 @@ With %1$s, in any terminal app, you can connect to and interact with the shell r
     <string name="bridge_op_message">%1$s wants to: %2$s</string>
     <string name="bridge_op_allow_once">Allow once</string>
 
+    <string name="rish_identity_info"><![CDATA[This build is <b>%1$s</b>. Right now commands would run as: <b>%2$s</b>. rish is a <b>legacy full-access</b> client: the terminal app must be approved with that label in the Apps screen. Set %3$s in the terminal before running rish, and RISH_QUIET=1 to hide the one-line privilege notice.]]></string>
     <string name="nav_status">Status</string>
     <string name="nav_apps">Apps</string>
     <string name="nav_activity">Activity</string>

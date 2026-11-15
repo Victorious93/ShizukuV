@@ -9,6 +9,9 @@ android {
     buildFeatures {
         buildConfig = false
     }
+    lint {
+        baseline = file('lint-baseline.xml')
+    }
 }
 
 dependencies {

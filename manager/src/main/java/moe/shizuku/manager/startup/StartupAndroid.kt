@@ -144,6 +144,7 @@ class RootLauncher : StartupLauncher {
     }
 }
 
+@androidx.annotation.RequiresApi(Build.VERSION_CODES.R)
 class WirelessAdbLauncher(
     private val context: Context,
     private val controller: DebugSettingsController,
@@ -245,10 +246,15 @@ object BridgeStartup {
         val ctx = appContext ?: return null
         return when {
             ShizukuSettings.getLastLaunchMode() == LaunchMethod.ROOT -> RootLauncher()
-            ShizukuSettings.getLastLaunchMode() == LaunchMethod.ADB && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
-                GlobalSettingsAccessor(ctx).let { WirelessAdbLauncher(ctx, DebugSettingsController(it, PrefsLedgerStore()), StartupPrefs.policy(), it) }
+            ShizukuSettings.getLastLaunchMode() == LaunchMethod.ADB -> adbLauncher(ctx)
             else -> null
         }
+    }
+
+    private fun adbLauncher(ctx: Context): StartupLauncher? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null   // boot start needs Android 13+ (r.android.com/2128832)
+        val accessor = GlobalSettingsAccessor(ctx)
+        return WirelessAdbLauncher(ctx, DebugSettingsController(accessor, PrefsLedgerStore()), StartupPrefs.policy(), accessor)
     }
 
     private suspend fun afterSuccess() {

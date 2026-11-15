@@ -104,7 +104,8 @@ class DefaultHandlers(
             val c = File(f, n)
             // Symlink targets are reported as links and never followed or sized.
             val link = cfg.symlinks.isSymlink(c)
-            "${if (link) "l" else if (c.isDirectory) "d" else "f"}\t${if (link) 0 else c.length()}\t$n"
+            // type, size, mtime (ms), name - the name is last so a tab inside it cannot shift the other fields
+            "${if (link) "l" else if (c.isDirectory) "d" else "f"}\t${if (link) 0 else c.length()}\t${if (link) 0 else c.lastModified()}\t$n"
         }
         mapOf("entries" to entries, "total" to names.size, "has_more" to (offset + page.size < names.size))
     }

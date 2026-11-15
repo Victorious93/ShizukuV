@@ -38,6 +38,24 @@ public class Shell extends Rish {
         }
     }
 
+    /**
+     * Victorious: say plainly which privilege this shell runs with, once, on stderr. rish is a legacy full-access
+     * client, so the line also names that. Set RISH_QUIET=1 to suppress it (e.g. in scripts that parse stderr).
+     */
+    private static void announcePrivilege(String callerPackage) {
+        if ("1".equals(System.getenv("RISH_QUIET"))) return;
+        try {
+            int uid = Shizuku.getUid();
+            String mode = uid == 0 ? "root" : uid == 2000 ? "ADB (shell)" : "uid " + uid;
+            ai.victorious.bridge.sdk.BridgeInfo info = ai.victorious.bridge.sdk.VictoriousBridge.INSTANCE.negotiate();
+            String level = info == null ? "unknown" : info.getAccessLevel().name().toLowerCase();
+            System.err.println("rish: commands run as " + mode + " through Victorious Bridge; " + callerPackage
+                    + " has " + level + " access. (RISH_QUIET=1 hides this line)");
+            System.err.flush();
+        } catch (Throwable ignored) {
+        }
+    }
+
     public static void main(String[] args, String packageName, IBinder binder, Handler handler) {
         RishConfig.init(binder, ShizukuApiConstants.BINDER_DESCRIPTOR, 30000);
         Shizuku.onBinderReceived(binder, packageName);
@@ -48,6 +66,7 @@ public class Shell extends Rish {
                 System.err.flush();
                 System.exit(1);
             }
+            announcePrivilege(packageName);
             new Shell().start(args);
         });
     }

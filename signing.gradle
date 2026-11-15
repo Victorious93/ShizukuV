@@ -1,3 +1,6 @@
+// Victorious: debug builds may use the default debug key (secret-free). RELEASE builds are signed only when
+// signing.properties provides a real key; otherwise they stay UNSIGNED. There is no silent fallback to the debug key.
+ext.hasReleaseKey = rootProject.file('signing.properties').canRead()
 def ksFile = rootProject.file('signing.properties')
 def props = new Properties()
 if (ksFile.canRead()) {

@@ -357,4 +357,19 @@ class DispatcherTest {
         val r = call(10123, "diagnostics.read")
         assertEquals("adb", r.data["exec_mode"]); assertEquals(BridgeIdentity.BRIDGE_API_VERSION, r.data["bridge_api_version"])
     }
+
+    @Test fun listingReportsTypeSizeMtimeAndNeverFollowsSymlinks() {
+        val root = tmp.newFolder("ls").canonicalFile
+        File(root, "a.txt").writeText("hello"); File(root, "dir").mkdir()
+        File(root, "out").let { java.nio.file.Files.createSymbolicLink(it.toPath(), tmp.newFolder("elsewhere").toPath()) }
+        grants.grant(10123, setOf(Capability.FILES_READ), GrantMode.SESSION, listOf(root.path))
+        val r = call(10123, "files.list", mapOf("path" to root.path))
+        assertTrue(r.ok)
+        @Suppress("UNCHECKED_CAST") val entries = (r.data["entries"] as List<String>).map { it.split('\t', limit = 4) }
+        assertEquals(listOf("f", "5"), entries.first { it[3] == "a.txt" }.take(2))
+        assertEquals("d", entries.first { it[3] == "dir" }[0])
+        val link = entries.first { it[3] == "out" }
+        assertEquals(listOf("l", "0", "0"), link.take(3))
+        assertTrue(entries.first { it[3] == "a.txt" }[2].toLong() > 0)
+    }
 }

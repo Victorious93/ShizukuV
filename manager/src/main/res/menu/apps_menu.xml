@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/action_search"
+        android:actionViewClass="androidx.appcompat.widget.SearchView"
         android:icon="@drawable/ic_outline_search_24"
-        android:title="@string/apps_search_hint"
-        app:actionViewClass="androidx.appcompat.widget.SearchView"
-        app:showAsAction="always|collapseActionView" />
+        android:showAsAction="always|collapseActionView"
+        android:title="@string/apps_search_hint" />
 </menu>

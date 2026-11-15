@@ -34,7 +34,8 @@ android {
             signingConfig signingConfigs.sign
         }
         release {
-            signingConfig signingConfigs.sign
+            // Only a real key signs a release; without signing.properties the APK is left unsigned (see signing.gradle).
+            signingConfig rootProject.file('signing.properties').canRead() ? signingConfigs.sign : null
             minifyEnabled true
             shrinkResources true
             vcsInfo.include false
@@ -63,6 +64,9 @@ android {
     }
     lint {
         checkReleaseBuilds false
+        // Findings that existed before the Victorious changes are baselined so lint fails only on NEW problems.
+        // Regenerate deliberately with: ./gradlew :manager:updateLintBaseline (see docs/TOOLCHAIN.md).
+        baseline = file('lint-baseline.xml')
     }
 }
 
@@ -112,7 +116,10 @@ afterEvaluate {
 
 android.applicationVariants.configureEach { variant ->
     variant.outputs.configureEach {
-        outputFileName = "victorious-bridge-v${variant.versionName}-${variant.name}.apk"
+        def releaseSigned = rootProject.file('signing.properties').canRead()
+        // Label what the file really is: debug-signed debug build, production-signed release, or unsigned release.
+        def label = variant.buildType.name == 'release' ? (releaseSigned ? 'release' : 'release-unsigned') : 'debug'
+        outputFileName = "victorious-bridge-v${variant.versionName}-${label}.apk"
 
         variant.assembleProvider.get().doLast {
             def outDir = new File(rootDir, "out")

@@ -23,6 +23,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.UserInfo;
 import android.ddm.DdmHandleAppName;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -200,11 +201,17 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
         return clientManager;
     }
 
+    /** UserInfo.userType exists from API 30; before that the managed-profile flag is the signal. */
+    static boolean isManagedProfile(UserInfo userInfo) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return "android.os.usertype.profile.MANAGED".equals(userInfo.userType);
+        }
+        return (userInfo.flags & UserInfo.FLAG_MANAGED_PROFILE) != 0;
+    }
+
     boolean startManagerActivity(Intent intent, int userId) {
         UserInfo userInfo = UserManagerApis.getUserInfo(userId);
-        boolean isWorkProfileUser = userInfo != null && (BuildUtils.atLeast30() ?
-                "android.os.usertype.profile.MANAGED".equals(userInfo.userType) :
-                (userInfo.flags & UserInfo.FLAG_MANAGED_PROFILE) != 0);
+        boolean isWorkProfileUser = userInfo != null && isManagedProfile(userInfo);
         ActivityManagerApis.startActivityNoThrow(intent, null, isWorkProfileUser ? 0 : userId);
         return true;
     }
@@ -436,9 +443,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
 
         PackageInfo pi = PackageManagerApis.getPackageInfoNoThrow(MANAGER_APPLICATION_ID, 0, userId);
         UserInfo userInfo = UserManagerApis.getUserInfo(userId);
-        boolean isWorkProfileUser = BuildUtils.atLeast30() ?
-                "android.os.usertype.profile.MANAGED".equals(userInfo.userType) :
-                (userInfo.flags & UserInfo.FLAG_MANAGED_PROFILE) != 0;
+        boolean isWorkProfileUser = isManagedProfile(userInfo);
         if (pi == null && !isWorkProfileUser) {
             LOGGER.w("Manager not found in non work profile user %d. Revoke permission", userId);
             clientRecord.dispatchRequestPermissionResult(requestCode, false);
