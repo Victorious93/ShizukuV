@@ -92,7 +92,7 @@ class ActivityLog(
      */
     fun exportRedacted(headerLines: List<String> = emptyList()): String {
         val sb = StringBuilder()
-        sb.append("Victorious Bridge activity export (redacted)\n")
+        sb.append("ShizukuV activity export (redacted)\n")
         headerLines.forEach { sb.append(Redactor.redact(it)).append('\n') }
         sb.append("Note: actions by LEGACY_FULL clients (raw Binder / UserService / newProcess) are not visible here.\n")
         sb.append("Note: secrets, pairing codes, tokens, file contents and command arguments are never recorded.\n\n")

@@ -1,22 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Base.AppTheme.Light" parent="Theme.Material3.Light.Shizuku">
-        <item name="android:statusBarColor">?android:colorBackground</item>
-
-        <item name="appColorPrimary">@color/app_color_light</item>
-        <item name="homeCardStyle">@style/Card.Light</item>
-
-        <item name="android:windowActionBar">false</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
-    </style>
-
-    <style name="Theme.Light" parent="Base.AppTheme.Light" />
-
+    <!-- The only app theme. Every Material3 colour role is pinned to the neon palette so dialogs, cards, menus,
+         ripples and system bars stay dark; nothing derives from the device wallpaper or a light variant. -->
     <style name="Base.AppTheme" parent="Theme.Material3.Dark.Shizuku">
-        <item name="appColorPrimary">@color/app_color_dark</item>
+        <item name="colorPrimary">@color/neon_cyan</item>
+        <item name="colorOnPrimary">@color/neon_on_cyan</item>
+        <item name="colorPrimaryContainer">@color/neon_cyan_container</item>
+        <item name="colorOnPrimaryContainer">@color/neon_on_cyan_container</item>
+        <item name="colorPrimaryInverse">@color/neon_cyan</item>
+
+        <item name="colorSecondary">@color/neon_magenta</item>
+        <item name="colorOnSecondary">@color/neon_on_magenta</item>
+        <item name="colorSecondaryContainer">@color/neon_magenta_container</item>
+        <item name="colorOnSecondaryContainer">@color/neon_on_magenta_container</item>
+
+        <item name="colorTertiary">@color/neon_tertiary</item>
+        <item name="colorOnTertiary">@color/neon_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/neon_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/neon_on_tertiary_container</item>
+
+        <item name="colorError">@color/neon_error</item>
+        <item name="colorOnError">@color/neon_on_error</item>
+        <item name="colorErrorContainer">@color/neon_error_container</item>
+        <item name="colorOnErrorContainer">@color/neon_on_error_container</item>
+
+        <item name="android:colorBackground">@color/neon_background</item>
+        <item name="colorOnBackground">@color/neon_on_surface</item>
+        <item name="colorSurface">@color/neon_background</item>
+        <item name="colorOnSurface">@color/neon_on_surface</item>
+        <item name="colorSurfaceVariant">@color/neon_surface_container_highest</item>
+        <item name="colorOnSurfaceVariant">@color/neon_on_surface_variant</item>
+        <item name="colorSurfaceDim">@color/neon_surface_container_lowest</item>
+        <item name="colorSurfaceBright">@color/neon_surface_bright</item>
+        <item name="colorSurfaceContainerLowest">@color/neon_surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/neon_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/neon_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/neon_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/neon_surface_container_highest</item>
+        <item name="colorSurfaceInverse">@color/neon_surface_container_highest</item>
+        <item name="colorOnSurfaceInverse">@color/neon_on_surface</item>
+        <item name="colorOutline">@color/neon_outline</item>
+        <item name="colorOutlineVariant">@color/neon_outline_variant</item>
+
+        <item name="android:windowBackground">@color/neon_background</item>
+        <item name="android:colorBackgroundCacheHint">@color/neon_background</item>
+        <item name="android:statusBarColor">@color/neon_background</item>
+        <item name="android:navigationBarColor">@color/neon_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorControlHighlight">@color/neon_ripple</item>
+        <item name="colorControlHighlight">@color/neon_ripple</item>
+        <item name="android:textColorPrimary">@color/neon_on_surface</item>
+        <item name="android:textColorSecondary">@color/neon_on_surface_variant</item>
+
+        <item name="appColorPrimary">@color/neon_cyan</item>
         <item name="homeCardStyle">@style/Card</item>
 
         <item name="android:windowActionBar">false</item>

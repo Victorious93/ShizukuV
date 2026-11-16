@@ -1,7 +1,7 @@
 package ai.victorious.bridge.core
 
 /**
- * Single source of truth for the Victorious Bridge identity on the JVM side.
+ * Single source of truth for the ShizukuV identity on the JVM side.
  *
  * Every other place that must repeat these strings (Gradle `bridgeApplicationId`, manifests, the
  * native starter, the vendored provider) is checked against this object by `IdentityConsistencyTest`,
@@ -14,8 +14,8 @@ package ai.victorious.bridge.core
  * wire-protocol names, not branding, and are intentionally unchanged.
  */
 object BridgeIdentity {
-    const val DISPLAY_NAME = "Victorious Bridge"
-    const val APPLICATION_ID = "ai.victorious.bridge"
+    const val DISPLAY_NAME = "ShizukuV"
+    const val APPLICATION_ID = "com.victorious.shizukuv"
 
     /** Signature-level permission held only by the manager itself. */
     const val PERMISSION_MANAGER = "$APPLICATION_ID.permission.MANAGER"
@@ -35,13 +35,13 @@ object BridgeIdentity {
     const val EXTRA_BINDER = "$APPLICATION_ID.intent.extra.BINDER"
 
     /** Suffix appended to a *client's* package name to form its binder-receiving provider authority. */
-    const val PROVIDER_AUTHORITY_SUFFIX = ".victoriousbridge"
+    const val PROVIDER_AUTHORITY_SUFFIX = ".shizukuv"
 
-    const val SERVER_PROCESS_NAME = "victorious_bridge_server"
-    const val STARTER_DONE_MARKER = "info: victorious_bridge_starter exit with 0"
-    const val SERVER_CONFIG_FILE = "/data/user_de/0/com.android.shell/victorious_bridge.json"
-    const val SERVER_GRANTS_FILE = "/data/user_de/0/com.android.shell/victorious_bridge_grants.json"
-    const val SERVER_ACTIVITY_FILE = "/data/user_de/0/com.android.shell/victorious_bridge_activity.jsonl"
+    const val SERVER_PROCESS_NAME = "shizukuv_server"
+    const val STARTER_DONE_MARKER = "info: shizukuv_starter exit with 0"
+    const val SERVER_CONFIG_FILE = "/data/user_de/0/com.android.shell/shizukuv.json"
+    const val SERVER_GRANTS_FILE = "/data/user_de/0/com.android.shell/shizukuv_grants.json"
+    const val SERVER_ACTIVITY_FILE = "/data/user_de/0/com.android.shell/shizukuv_activity.jsonl"
 
     /** Semantic version of the controlled-API contract exposed to clients (bumped on breaking change). */
     const val BRIDGE_API_VERSION = 1

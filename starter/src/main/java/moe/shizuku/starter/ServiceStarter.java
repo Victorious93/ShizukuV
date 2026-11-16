@@ -21,7 +21,7 @@ public class ServiceStarter {
 
     private static final String TAG = "ShizukuServiceStarter";
 
-    private static final String EXTRA_BINDER = "ai.victorious.bridge.intent.extra.BINDER";
+    private static final String EXTRA_BINDER = "com.victorious.shizukuv.intent.extra.BINDER";
 
     public static final String DEBUG_ARGS;
 
@@ -93,8 +93,8 @@ public class ServiceStarter {
 
     private static boolean sendBinder(IBinder binder, String token, boolean retry) {
         // Victorious: kept as literals so the user-service dex does not need bridge-core; IdentityConsistencyTest checks them.
-        String packageName = "ai.victorious.bridge";
-        String name = packageName + ".victoriousbridge";
+        String packageName = "com.victorious.shizukuv";
+        String name = packageName + ".shizukuv";
         int userId = 0;
         IContentProvider provider = null;
 

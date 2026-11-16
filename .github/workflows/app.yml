@@ -18,6 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0          # versionCode/versionName come from git history
+          submodules: recursive   # none today (api/ is vendored); if one is added it is fetched over HTTPS, never SSH
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -27,7 +28,7 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.31.6"
-      - name: Unit tests (bridge-core: grants, scope, startup, profiles, identity + contract consistency)
+      - name: "Unit tests (bridge-core - grants, scope, startup, profiles, identity and contract consistency)"
         run: ./gradlew :bridge-core:test --stacktrace
       - name: Android lint
         run: ./gradlew :manager:lintDebug :server:lintDebug :bridge-sdk:lintDebug --continue
@@ -43,11 +44,11 @@ jobs:
   build:
     name: Build APKs
     runs-on: ubuntu-latest
-    needs: test
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -63,11 +64,22 @@ jobs:
         run: bash scripts/verify-apk.sh
       - name: Checksums and signing labels
         run: bash scripts/release-artifacts.sh
-      - uses: actions/upload-artifact@v4
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
         with:
-          name: victorious-bridge-apks
-          path: out/artifacts/*
+          name: shizukuv-debug-apk
+          path: manager/build/outputs/apk/debug/shizukuv-*-debug.apk
+          if-no-files-found: error
           compression-level: 0
+      - name: Upload checksums and build info
+        uses: actions/upload-artifact@v4
+        with:
+          name: shizukuv-build-info
+          path: |
+            out/artifacts/SHA256SUMS
+            out/artifacts/BUILD-INFO.txt
+            out/artifacts/*release-unsigned.apk
+          if-no-files-found: warn
 
   # A production-signed release is built only on the default branch and only if the repository provides the key.
   # Without it the job still succeeds with the unsigned release and says so; it never falls back to the debug key.
@@ -81,6 +93,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -111,6 +124,6 @@ jobs:
         run: rm -f key.jks signing.properties
       - uses: actions/upload-artifact@v4
         with:
-          name: victorious-bridge-release
+          name: shizukuv-release
           path: out/artifacts/*
           compression-level: 0

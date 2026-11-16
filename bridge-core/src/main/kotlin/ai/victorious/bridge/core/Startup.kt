@@ -10,14 +10,14 @@ enum class StartMethod { ROOT, WIRELESS_ADB }
 
 /** Concrete, user-actionable reasons a start can fail. */
 enum class StartupFailure(val recovery: String) {
-    NOT_CONFIGURED("Open Victorious Bridge and start the service once so it knows which method to use."),
+    NOT_CONFIGURED("Open ShizukuV and start the service once so it knows which method to use."),
     UNSUPPORTED_ANDROID("Starting without a computer needs Android 11+ wireless debugging; use root or a computer (adb) instead."),
     MISSING_AUTHORIZATION("Grant the app the WRITE_SECURE_SETTINGS permission (run the adb command shown in Settings once, or use root)."),
     WIRELESS_DEBUGGING_OFF("Turn on Wireless debugging in Developer options, or allow boot start to turn it on in Settings."),
     PAIRING_FAILURE("Pair again: Developer options > Wireless debugging > Pair device with pairing code, then enter the code in the app."),
     DISCOVERY_TIMEOUT("The wireless-debugging port was not found. Make sure the phone is on Wi-Fi and Wireless debugging is on, then retry."),
     PORT_UNAVAILABLE("The wireless-debugging port refused the connection. Toggle Wireless debugging off and on, then retry."),
-    ROOT_DENIED("Root access was denied. Allow Victorious Bridge in your root manager, or switch to wireless debugging."),
+    ROOT_DENIED("Root access was denied. Allow ShizukuV in your root manager, or switch to wireless debugging."),
     STARTER_FAILED("The starter ran but reported an error; see Diagnostics for its output."),
     SERVICE_NOT_READY("The starter ran but the service never answered. Check Diagnostics; some ROMs kill background processes."),
     OEM_RESTRICTION("This ROM restricts background start-up. Exempt the app from battery optimisation / enable auto-start, then retry."),

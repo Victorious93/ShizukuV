@@ -1,7 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ShizukuV palette: dark neon only. Background #0B0F1A, cyan #00E5FF, magenta #FF2BD6. There is no light palette. -->
 <resources>
-    <color name="notification">#3F51B5</color>
+    <color name="neon_background">#0B0F1A</color>
+    <color name="neon_cyan">#00E5FF</color>
+    <color name="neon_magenta">#FF2BD6</color>
 
-    <color name="app_color_light">#3F51B5</color>
-    <color name="app_color_dark">#B1B8DF</color>
+    <color name="neon_surface_container_lowest">#080B14</color>
+    <color name="neon_surface_container_low">#0F1422</color>
+    <color name="neon_surface_container">#131A2B</color>
+    <color name="neon_surface_container_high">#182036</color>
+    <color name="neon_surface_container_highest">#1E2842</color>
+    <color name="neon_surface_bright">#232F4D</color>
+
+    <color name="neon_on_surface">#E6F1FF</color>
+    <color name="neon_on_surface_variant">#A3B4CC</color>
+    <color name="neon_outline">#52627F</color>
+    <color name="neon_outline_variant">#2A3550</color>
+
+    <color name="neon_on_cyan">#00363D</color>
+    <color name="neon_cyan_container">#004F5A</color>
+    <color name="neon_on_cyan_container">#B8F6FF</color>
+
+    <color name="neon_on_magenta">#3D0033</color>
+    <color name="neon_magenta_container">#650056</color>
+    <color name="neon_on_magenta_container">#FFD7F6</color>
+
+    <color name="neon_tertiary">#B388FF</color>
+    <color name="neon_on_tertiary">#2A0F5C</color>
+    <color name="neon_tertiary_container">#44238A</color>
+    <color name="neon_on_tertiary_container">#E8DAFF</color>
+
+    <color name="neon_error">#FF6B8A</color>
+    <color name="neon_on_error">#4A0014</color>
+    <color name="neon_error_container">#7A0A26</color>
+    <color name="neon_on_error_container">#FFD9E0</color>
+
+    <color name="neon_ripple">#3300E5FF</color>
+
+    <!-- Background of the official stamp artwork (sampled from docs/assets/shizukuv-stamp.jpg). -->
+    <color name="ic_launcher_background">#000216</color>
+
+    <color name="notification">#00E5FF</color>
 </resources>

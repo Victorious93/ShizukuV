@@ -115,7 +115,7 @@ class AppViewHolder(private val binding: AppListItemBinding) : BaseViewHolder<Pa
         pkg.text = ai.packageName + "\n" + AuthorizationManager.accessSummary(itemView.context, uid)
         switchWidget.isChecked = AuthorizationManager.granted(packageName, uid)
         switchWidget.contentDescription = AuthorizationManager.accessSummary(itemView.context, uid)
-        root.visibility = if (ai.metaData != null && ai.metaData.getBoolean("ai.victorious.bridge.client.REQUIRES_ROOT")) View.VISIBLE else View.GONE
+        root.visibility = if (ai.metaData != null && ai.metaData.getBoolean("com.victorious.shizukuv.client.REQUIRES_ROOT")) View.VISIBLE else View.GONE
 
         loadIconJob = AppIconCache.loadIconBitmapAsync(context, ai, ai.uid / 100000, icon)
     }

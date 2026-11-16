@@ -45,8 +45,8 @@ class BridgeCall internal constructor(val requestId: String, private val cancelI
  * [BridgeIdentity.BRIDGE_API_VERSION] the wire contract; [negotiate] reports what the service supports.
  *
  * Apps still need the standard provider declared in their manifest (authority
- * `${applicationId}.victoriousbridge`) so the service can deliver its Binder. This SDK only works with
- * the Victorious Bridge service; it does not talk to upstream Shizuku and never pretends to.
+ * `${applicationId}.shizukuv`) so the service can deliver its Binder. This SDK only works with
+ * the ShizukuV service; it does not talk to upstream Shizuku and never pretends to.
  *
  * Methods that wait ([negotiate], [execute]) must not be called on the main thread.
  */
@@ -113,7 +113,7 @@ object VictoriousBridge {
     ): BridgeCall {
         val s = service()
         if (s == null) {
-            callback(BridgeResult(requestId, ResultStatus.ERROR, ErrorCode.NOT_ATTACHED, "Victorious Bridge service is not running"))
+            callback(BridgeResult(requestId, ResultStatus.ERROR, ErrorCode.NOT_ATTACHED, "ShizukuV service is not running"))
             return BridgeCall(requestId) { false }
         }
         val req = Bundle().apply {

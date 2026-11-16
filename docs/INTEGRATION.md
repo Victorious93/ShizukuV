@@ -4,11 +4,11 @@
 
 1. Depend on `:bridge-sdk` (it brings `api`, `provider`, `aidl`, `bridge-core`). Version: `VictoriousBridge.SDK_VERSION` (1.0.0);
    wire contract `BridgeIdentity.BRIDGE_API_VERSION` (1); `VictoriousBridge.negotiate()` reports what the service supports.
-2. Declare the provider so the service can hand over its Binder (the library manifest adds the `ai.victorious.bridge.client.SUPPORT`
+2. Declare the provider so the service can hand over its Binder (the library manifest adds the `com.victorious.shizukuv.client.SUPPORT`
    meta-data; it does **not** add the legacy permission):
    ```xml
    <provider android:name="rikka.shizuku.ShizukuProvider"
-       android:authorities="${applicationId}.victoriousbridge"
+       android:authorities="${applicationId}.shizukuv"
        android:exported="true" android:multiprocess="false"
        android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
    ```

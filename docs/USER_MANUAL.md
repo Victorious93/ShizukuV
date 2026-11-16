@@ -1,4 +1,4 @@
-# Victorious Bridge user manual
+# ShizukuV user manual
 
 > Status: written from the implemented behaviour and the source. **No screen has been checked on a device**, so wording and layout may differ slightly.
 

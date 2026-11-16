@@ -41,7 +41,7 @@ A **grant** belongs to a uid (so to an Android user too) and records its package
 |---|---|---|
 | Until the service stops | service process ends (restart, crash, reboot) or revoke | no |
 | 15 minutes | 15 min of *monotonic* time, never past the process | no |
-| Until revoked | revoke, or the caller's identity changes | yes (`victorious_bridge_grants.json`) |
+| Until revoked | revoke, or the caller's identity changes | yes (`shizukuv_grants.json`) |
 | Per operation | no standing access; each operation is confirmed in the manager and one approval covers one request | n/a |
 | Deny | n/a | n/a |
 

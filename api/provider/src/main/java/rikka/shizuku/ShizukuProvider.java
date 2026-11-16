@@ -34,7 +34,7 @@ import rikka.sui.Sui;
  *        ...
  *        &lt;provider
  *            android:name="rikka.shizuku.ShizukuProvider"
- *            android:authorities="${applicationId}.victoriousbridge"
+ *            android:authorities="${applicationId}.shizukuv"
  *            android:exported="true"
  *            android:multiprocess="false"
  *            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL"
@@ -73,11 +73,11 @@ public class ShizukuProvider extends ContentProvider {
     public static final String ACTION_BINDER_RECEIVED = "moe.shizuku.api.action.BINDER_RECEIVED";
 
     // Victorious: identity differs from upstream Shizuku on purpose; see api/UPSTREAM.md and docs/COMPATIBILITY.md.
-    private static final String EXTRA_BINDER = "ai.victorious.bridge.intent.extra.BINDER";
+    private static final String EXTRA_BINDER = "com.victorious.shizukuv.intent.extra.BINDER";
 
-    public static final String PERMISSION = "ai.victorious.bridge.permission.LEGACY_API_V1";
+    public static final String PERMISSION = "com.victorious.shizukuv.permission.LEGACY_API_V1";
 
-    public static final String MANAGER_APPLICATION_ID = "ai.victorious.bridge";
+    public static final String MANAGER_APPLICATION_ID = "com.victorious.shizukuv";
 
     private static boolean enableMultiProcess = false;
 
@@ -139,7 +139,7 @@ public class ShizukuProvider extends ContentProvider {
 
         Bundle reply;
         try {
-            reply = context.getContentResolver().call(Uri.parse("content://" + context.getPackageName() + ".victoriousbridge"),
+            reply = context.getContentResolver().call(Uri.parse("content://" + context.getPackageName() + ".shizukuv"),
                     ShizukuProvider.METHOD_GET_BINDER, null, new Bundle());
         } catch (Throwable tr) {
             reply = null;

@@ -24,7 +24,7 @@ To move to a newer upstream API, diff against that commit and re-apply the chang
 
 ## Artifacts
 
-`:manager:assembleDebug` is secret-free and signed with the public Android debug key. `:manager:assembleRelease` produces
+`:manager:assembleDebug` is secret-free and signed with the committed, public, debug-only key `keystore/shizukuv-debug.keystore` (see `keystore/README.md`), so debug APKs carry the same signature on every machine and in CI. `:manager:assembleRelease` produces
 `...-release-unsigned.apk` unless `signing.properties` (`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEYSTORE_ALIAS`,
 `KEYSTORE_ALIAS_PASSWORD`; git-ignored) provides the project's key; there is no fallback to the debug key.
 `scripts/release-artifacts.sh` writes `out/artifacts/SHA256SUMS` and `BUILD-INFO.txt` (commit, version, signing label per APK)

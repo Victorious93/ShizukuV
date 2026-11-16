@@ -51,7 +51,7 @@ class DiagnosticsActivity : AppBarActivity() {
     }
 
     private fun build(): String = buildString {
-        append("Victorious Bridge ${BuildConfig.VERSION_NAME}\n")
+        append("ShizukuV ${BuildConfig.VERSION_NAME}\n")
         append("Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ${Build.MANUFACTURER} ${Build.MODEL}\n\n")
         val running = Shizuku.pingBinder()
         if (!running) append(getString(R.string.status_not_running)).append('\n')

@@ -5,7 +5,6 @@ plugins {
     id('com.android.application')
     id('org.jetbrains.kotlin.android')
     id('dev.rikka.tools.refine')
-    id('dev.rikka.tools.autoresconfig')
     id('dev.rikka.tools.materialthemebuilder')
 }
 
@@ -13,6 +12,10 @@ android {
     namespace 'moe.shizuku.manager'
     defaultConfig {
         applicationId rootProject.ext.bridgeApplicationId
+        // English only: also drops translated strings that dependencies (Material, AndroidX, Rikka) bring along.
+        androidResources {
+            localeFilters += ['en']
+        }
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
         externalNativeBuild {
@@ -31,7 +34,7 @@ android {
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.sign
+            signingConfig signingConfigs.debug
         }
         release {
             // Only a real key signs a release; without signing.properties the APK is left unsigned (see signing.gradle).
@@ -70,17 +73,11 @@ android {
     }
 }
 
-autoResConfig {
-    generatedClassFullName = "rikka.shizuku.manager.ShizukuLocales"
-    generateRes = false
-    generatedArrayFirstItem = "SYSTEM"
-    generateLocaleConfig = true
-}
-
 materialThemeBuilder {
     themes {
         shizuku {
-            primaryColor = "#3F51B5"
+            // Seed only; every colour role is pinned to the ShizukuV neon palette in res/values/themes.xml.
+            primaryColor = "#00E5FF"
             lightThemeFormat = "Theme.Material3.Light.%s"
             lightThemeParent = "Theme.Material3.Light.Rikka"
             darkThemeFormat = "Theme.Material3.Dark.%s"
@@ -119,7 +116,7 @@ android.applicationVariants.configureEach { variant ->
         def releaseSigned = rootProject.file('signing.properties').canRead()
         // Label what the file really is: debug-signed debug build, production-signed release, or unsigned release.
         def label = variant.buildType.name == 'release' ? (releaseSigned ? 'release' : 'release-unsigned') : 'debug'
-        outputFileName = "victorious-bridge-v${variant.versionName}-${label}.apk"
+        outputFileName = "shizukuv-v${variant.versionName}-${label}.apk"
 
         variant.assembleProvider.get().doLast {
             def outDir = new File(rootDir, "out")

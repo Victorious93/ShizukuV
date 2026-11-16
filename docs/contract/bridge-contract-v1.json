@@ -1,9 +1,9 @@
 {
-  "contract": "victorious-bridge",
+  "contract": "shizukuv",
   "bridge_api_version": 1,
-  "application_id": "ai.victorious.bridge",
-  "provider_authority_suffix": ".victoriousbridge",
-  "client_support_meta_data": "ai.victorious.bridge.client.SUPPORT",
+  "application_id": "com.victorious.shizukuv",
+  "provider_authority_suffix": ".shizukuv",
+  "client_support_meta_data": "com.victorious.shizukuv.client.SUPPORT",
   "operations": {
     "diagnostics.read": "diagnostics.read",
     "settings.list": "settings.read",

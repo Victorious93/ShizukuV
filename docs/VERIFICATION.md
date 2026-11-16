@@ -1,5 +1,24 @@
 # Verification report
 
+## ShizukuV foundation rebrand (identity, icons, theme, English-only, debug signing, CI)
+
+Run on Linux x86_64, OpenJDK 21, Android SDK 36 / build-tools 36.0.0 / NDK 29.0.13113456 / CMake 3.31.6.
+
+| Check | Result |
+|---|---|
+| `./gradlew :bridge-core:test` | 127 tests, 0 failures (includes `IdentityConsistencyTest`: identity, permissions, icons, dark neon palette, English-only, fixed debug key, no extra keystores, vendored API, license/attribution) |
+| `./gradlew :manager:assembleDebug` | built; `aapt2 dump badging`: package `com.victorious.shizukuv`, label `ShizukuV`, `locales: '--_--'` only, adaptive launcher icon |
+| `./gradlew :manager:assembleRelease` | built **unsigned** (`...-release-unsigned.apk`), no fallback to the debug key |
+| `apksigner verify --print-certs` (debug APK) | signer `CN=ShizukuV Debug Only`, SHA-256 `0152ad3e...3cfb` = `keystore/shizukuv-debug.keystore` |
+| `:manager:lintDebug :server:lintDebug :bridge-sdk:lintDebug` | no new issues (baseline regenerated after the locale folders were removed) |
+| `scripts/verify-apk.sh`, `scripts/release-artifacts.sh` | passed; debug labelled DEBUG-SIGNED, release labelled UNSIGNED |
+
+**Not verified**: installing or launching the app, any screen rendering (the dark neon theme was checked only at the resource level, not
+visually), the service in any start mode, coexistence with upstream Shizuku, or discovery by any client app. No emulator or device was
+available. The GitHub Actions workflow was edited but could not be run before the pull request existed.
+
+The sections below are the earlier verification record (identity strings in it predate the rename to ShizukuV).
+
 Honest record of what was run, what it showed, and what was **not** done. Nothing below was run on a device or emulator.
 
 ## Environment
@@ -51,8 +70,7 @@ upstream-identifier test; lint found guards that lint could not see (fixed with 
 - No UI screenshots, large-text, TalkBack or contrast check; the new screens are unverified beyond lint and compilation.
 - Release signing: no key was available, so there is **no production-signed APK**. This is the only release blocker.
 - The path-scope check has a documented TOCTOU window (`O_NOFOLLOW` open not implemented).
-- Not translated: new strings are English-only (fallback); existing translations are preserved and rebranded.
-- No PR was opened and nothing was merged or released.
+- Translations were removed: the UI is English only.
 
 ## Pre-existing lint findings (baselined, not introduced)
 `MissingTranslation` (174 strings missing in some locales), `StringFormat*`, `MissingQuantity` (cs), `MissingLeanbackLauncher`

@@ -83,8 +83,77 @@ class IdentityConsistencyTest {
     }
 
     @Test fun brandNameIsNotUpstreamsAndStringsAreRebranded() {
-        assertFalse(BridgeIdentity.DISPLAY_NAME.contains("Shizuku"))
+        assertEquals("ShizukuV", BridgeIdentity.DISPLAY_NAME)
+        assertEquals("com.victorious.shizukuv", BridgeIdentity.APPLICATION_ID)
+        assertNotEquals("Shizuku", BridgeIdentity.DISPLAY_NAME)
         assertTrue(read("manager/src/main/res/values/strings.xml").contains("name=\"app_name\" translatable=\"false\">${BridgeIdentity.DISPLAY_NAME}<"))
-        assertFalse("upstream launcher artwork must not ship", File(root, "manager/src/main/res/mipmap-xxxhdpi/ic_launcher.png").exists())
+        assertTrue(read("manager/src/main/AndroidManifest.xml").contains("android:label=\"@string/app_name\""))
+    }
+
+    @Test fun launcherIconsAreTheShizukuVStampNotUpstreamArtwork() {
+        assertTrue("official stamp source must be kept", File(root, "docs/assets/shizukuv-stamp.jpg").isFile)
+        val res = "manager/src/main/res"
+        for (d in listOf("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"))
+            for (n in listOf("ic_launcher.png", "ic_launcher_round.png", "ic_launcher_foreground.png", "ic_launcher_monochrome.png"))
+                assertTrue("$res/mipmap-$d/$n", File(root, "$res/mipmap-$d/$n").isFile)
+        assertTrue(File(root, "$res/mipmap-anydpi-v26/ic_launcher.xml").isFile)
+        assertTrue(File(root, "$res/mipmap-anydpi-v26/ic_launcher_round.xml").isFile)
+        val m = read("manager/src/main/AndroidManifest.xml")
+        assertTrue(m.contains("android:icon=\"@mipmap/ic_launcher\""))
+        assertTrue(m.contains("android:roundIcon=\"@mipmap/ic_launcher_round\""))
+    }
+
+    @Test fun themeIsDarkNeonOnly() {
+        val colors = read("manager/src/main/res/values/colors.xml").lowercase()
+        assertTrue(colors.contains("name=\"neon_background\">#0b0f1a<"))
+        assertTrue(colors.contains("name=\"neon_cyan\">#00e5ff<"))
+        assertTrue(colors.contains("name=\"neon_magenta\">#ff2bd6<"))
+        val themes = read("manager/src/main/res/values/themes.xml")
+        assertTrue(themes.contains("Theme.Material3.Dark."))
+        assertFalse("no light theme parent", themes.contains("Theme.Material3.Light."))
+        assertFalse("no light theme", themes.contains("Theme.Light"))
+        assertTrue(themes.contains("<item name=\"android:colorBackground\">@color/neon_background</item>"))
+        assertTrue(themes.contains("<item name=\"colorPrimary\">@color/neon_cyan</item>"))
+        assertTrue(themes.contains("<item name=\"colorSecondary\">@color/neon_magenta</item>"))
+        assertFalse(read("manager/src/main/res/values/styles.xml").contains("Theme.Light"))
+        val forbidden = listOf("values-night", "color-night", "drawable-night", "layout-night")
+        val res = File(root, "manager/src/main/res")
+        assertTrue("night-qualified resource folders mean a light default exists: ${res.list()?.filter { it in forbidden }}",
+            res.list().orEmpty().none { it in forbidden })
+    }
+
+    @Test fun uiShipsEnglishOnly() {
+        val res = File(root, "manager/src/main/res")
+        val localeDirs = res.list().orEmpty().filter { Regex("^values-(?!night$|v\\d+$|sw\\d+dp$)[a-zA-Z+].*").matches(it) }
+        assertTrue("non-English string folders: $localeDirs", localeDirs.isEmpty())
+        assertFalse(read("manager/src/main/AndroidManifest.xml").contains("localeConfig"))
+        assertTrue(read("manager/build.gradle").contains("localeFilters += ['en']"))
+    }
+
+    @Test fun debugSigningIsFixedAndNeverARealReleaseKey() {
+        assertTrue(File(root, "keystore/shizukuv-debug.keystore").isFile)
+        val g = read("signing.gradle")
+        assertTrue(g.contains("keystore/shizukuv-debug.keystore"))
+        assertFalse("release must not fall back to the debug key", g.contains("signingConfigs.sign.storeFile = android.signingConfigs.debug"))
+        assertTrue(read("manager/build.gradle").contains("signingConfig signingConfigs.debug"))
+        val tracked = root.walkTopDown().onEnter { it.name !in setOf(".git", "build", ".gradle", ".cxx") }
+            .filter { it.isFile && (it.extension in setOf("jks", "keystore", "p12", "pfx")) }
+            .map { it.relativeTo(root).path }.toList()
+        assertEquals("only the public debug keystore may be committed", listOf("keystore/shizukuv-debug.keystore"), tracked)
+        assertTrue("signing.properties must stay git-ignored", File(root, ".gitignore").readText().lines().any { it.trim().endsWith("signing.properties") })
+    }
+
+    @Test fun apiIsVendoredNoSshSubmodule() {
+        assertFalse(File(root, ".gitmodules").exists())
+        assertTrue(File(root, "api/UPSTREAM.md").isFile)
+    }
+
+    @Test fun apache2LicenseAndUpstreamAttributionKept() {
+        assertTrue(read("LICENSE").contains("Apache License"))
+        val readme = read("README.md")
+        assertTrue(readme.contains("RikkaApps/Shizuku"))
+        assertTrue(readme.contains("Apache"))
+        assertTrue(readme.contains("RikkaW"))
+        assertTrue(File(root, "api/LICENSE").isFile)
     }
 }
