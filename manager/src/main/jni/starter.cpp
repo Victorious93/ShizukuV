@@ -36,7 +36,7 @@
 #endif
 #define PACKAGE_NAME BRIDGE_PACKAGE_NAME
 // Distinct from the upstream project's server process name so starting this service never kills an upstream install's server.
-#define SERVER_NAME "victorious_bridge_server"
+#define SERVER_NAME "shizukuv_server"
 #define SERVER_CLASS_PATH "rikka.shizuku.server.ShizukuService"
 
 #if defined(__arm__)
@@ -102,7 +102,7 @@ v_current = (uintptr_t) v + v_size - sizeof(char *); \
     ARG(argv)
     ARG_PUSH(argv, "/system/bin/app_process")
     ARG_PUSH_FMT(argv, "-Djava.class.path=%s", dex_path)
-    ARG_PUSH_FMT(argv, "-Dvictorious.bridge.library.path=%s", lib_path)
+    ARG_PUSH_FMT(argv, "-Dshizukuv.library.path=%s", lib_path)
     ARG_PUSH_DEBUG_VM_PARAMS(argv)
     ARG_PUSH(argv, "/system/bin")
     ARG_PUSH_FMT(argv, "--nice-name=%s", process_name)
@@ -138,8 +138,8 @@ static void start_server(const char *path, const char *main_class, const char *p
             run_server(path, main_class, process_name);
         }
         default: {
-            printf("info: victorious_bridge_server pid is %d\n", pid);
-            printf("info: victorious_bridge_starter exit with 0\n");
+            printf("info: shizukuv_server pid is %d\n", pid);
+            printf("info: shizukuv_starter exit with 0\n");
             exit(EXIT_SUCCESS);
         }
     }
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
     uid_t uid = getuid();
     if (uid != 0 && uid != 2000) {
-        perrorf("fatal: run Victorious Bridge from non root nor adb user (uid=%d).\n", uid);
+        perrorf("fatal: run ShizukuV from non root nor adb user (uid=%d).\n", uid);
         exit(EXIT_FATAL_UID);
     }
 
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
         if (kill(pid, SIGKILL) == 0)
             printf("info: killed %d (%s)\n", pid, name);
         else if (errno == EPERM) {
-            perrorf("fatal: can't kill %d, please try to stop the existing Victorious Bridge service from the app first.\n", pid);
+            perrorf("fatal: can't kill %d, please try to stop the existing ShizukuV service from the app first.\n", pid);
             exit(EXIT_FATAL_KILL);
         } else {
             printf("warn: failed to kill %d (%s)\n", pid, name);

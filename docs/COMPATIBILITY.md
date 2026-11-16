@@ -5,12 +5,12 @@ Legend - **Implemented**: code exists. **Verified (JVM)**: covered by unit tests
 
 ## Existing Shizuku clients
 
-Victorious Bridge **does not impersonate Shizuku**. It uses a different application id, permissions, provider authority and binder key.
+ShizukuV **does not impersonate Shizuku**. It uses a different application id, permissions, provider authority and binder key.
 
 | Client | Works? | Why / what to do |
 |---|---|---|
 | App built with upstream `dev.rikka.shizuku:provider` | **No (unsupported)** | Its provider looks for `moe.shizuku.privileged.api` and a different binder key and authority; the service never sends it a Binder. It keeps working with upstream Shizuku, which can stay installed. |
-| Same app rebuilt with this repo's `:bridge-sdk` (or the vendored `api/provider`) | **Yes after rebuild** (Unverified on device) | Change the dependency and the provider authority to `${applicationId}.victoriousbridge`; use the scoped API, or request legacy full access explicitly. |
+| Same app rebuilt with this repo's `:bridge-sdk` (or the vendored `api/provider`) | **Yes after rebuild** (Unverified on device) | Change the dependency and the provider authority to `${applicationId}.shizukuv`; use the scoped API, or request legacy full access explicitly. |
 | App using only `rikka.shizuku.Shizuku` calls (`newProcess`, `ShizukuBinderWrapper`, UserService) | **Requires rebuild + legacy full access** | Same API surface under the new provider. Granted only if the owner picks the legacy option. |
 | Terminal apps using `rish` | **Yes** with a re-exported `rish` + dex (the dex embeds the package id) | Legacy full access, labelled. Unverified on device. |
 | Sui-based clients | **Unsupported** | Sui implements upstream's identity. |

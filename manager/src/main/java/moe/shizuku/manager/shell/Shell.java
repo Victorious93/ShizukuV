@@ -49,7 +49,7 @@ public class Shell extends Rish {
             String mode = uid == 0 ? "root" : uid == 2000 ? "ADB (shell)" : "uid " + uid;
             ai.victorious.bridge.sdk.BridgeInfo info = ai.victorious.bridge.sdk.VictoriousBridge.INSTANCE.negotiate();
             String level = info == null ? "unknown" : info.getAccessLevel().name().toLowerCase();
-            System.err.println("rish: commands run as " + mode + " through Victorious Bridge; " + callerPackage
+            System.err.println("rish: commands run as " + mode + " through ShizukuV; " + callerPackage
                     + " has " + level + " access. (RISH_QUIET=1 hides this line)");
             System.err.flush();
         } catch (Throwable ignored) {

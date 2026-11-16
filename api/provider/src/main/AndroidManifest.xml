@@ -7,7 +7,7 @@
 
     <application tools:ignore="AllowBackup,GoogleAppIndexingWarning">
         <meta-data
-            android:name="ai.victorious.bridge.client.SUPPORT"
+            android:name="com.victorious.shizukuv.client.SUPPORT"
             android:value="true" />
     </application>
 
