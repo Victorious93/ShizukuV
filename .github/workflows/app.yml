@@ -28,7 +28,7 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.31.6"
-      - name: Unit tests (bridge-core: grants, scope, startup, profiles, identity + contract consistency)
+      - name: "Unit tests (bridge-core - grants, scope, startup, profiles, identity and contract consistency)"
         run: ./gradlew :bridge-core:test --stacktrace
       - name: Android lint
         run: ./gradlew :manager:lintDebug :server:lintDebug :bridge-sdk:lintDebug --continue
