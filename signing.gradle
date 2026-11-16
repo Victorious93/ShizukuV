@@ -1,20 +1,24 @@
-// Victorious: debug builds may use the default debug key (secret-free). RELEASE builds are signed only when
-// signing.properties provides a real key; otherwise they stay UNSIGNED. There is no silent fallback to the debug key.
+// ShizukuV signing.
+//
+// * debug   -> the committed, public, debug-only keystore (keystore/README.md). Needs no secrets, so debug APKs are
+//              signed identically on every machine and in CI.
+// * release -> signed ONLY when signing.properties (git-ignored) provides a real key; otherwise the release APK stays
+//              UNSIGNED. There is no fallback to the debug key, and nothing here reads environment secrets.
 ext.hasReleaseKey = rootProject.file('signing.properties').canRead()
-def ksFile = rootProject.file('signing.properties')
-def props = new Properties()
-if (ksFile.canRead()) {
-    props.load(new FileInputStream(ksFile))
 
-    if (props != null) {
-        android.signingConfigs.sign.storeFile file(props['KEYSTORE_FILE'])
-        android.signingConfigs.sign.storePassword props['KEYSTORE_PASSWORD']
-        android.signingConfigs.sign.keyAlias props['KEYSTORE_ALIAS']
-        android.signingConfigs.sign.keyPassword props['KEYSTORE_ALIAS_PASSWORD']
-    }
-} else {
-    android.signingConfigs.sign.storeFile = android.signingConfigs.debug.storeFile
-    android.signingConfigs.sign.storePassword = android.signingConfigs.debug.storePassword
-    android.signingConfigs.sign.keyAlias = android.signingConfigs.debug.keyAlias
-    android.signingConfigs.sign.keyPassword = android.signingConfigs.debug.keyPassword
+android.signingConfigs.debug {
+    storeFile rootProject.file('keystore/shizukuv-debug.keystore')
+    storePassword 'android'
+    keyAlias 'androiddebugkey'
+    keyPassword 'android'
+}
+
+def ksFile = rootProject.file('signing.properties')
+if (ksFile.canRead()) {
+    def props = new Properties()
+    ksFile.withInputStream { props.load(it) }
+    android.signingConfigs.sign.storeFile file(props['KEYSTORE_FILE'])
+    android.signingConfigs.sign.storePassword props['KEYSTORE_PASSWORD']
+    android.signingConfigs.sign.keyAlias props['KEYSTORE_ALIAS']
+    android.signingConfigs.sign.keyPassword props['KEYSTORE_ALIAS_PASSWORD']
 }

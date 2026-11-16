@@ -8,22 +8,24 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 BT="${ANDROID_HOME:-}/build-tools/$(sed -n 's/.*buildToolsVersion = "\(.*\)"/\1/p' build.gradle | head -1)"
 APKSIGNER="$BT/apksigner"; AAPT2="$BT/aapt2"
+# SHA-256 of the committed public debug certificate (keystore/shizukuv-debug.keystore).
+DEBUG_SHA256="0152ad3eb07afa563f8e399e62093e6ad9473be4f98c4cda51c9be32ccaa3cfb"
 out=out/artifacts; mkdir -p "$out"
 commit="$(git rev-parse HEAD)"; dirty=""; [ -n "$(git status --porcelain --untracked-files=no)" ] && dirty=" (working tree had uncommitted changes)"
 info="$out/BUILD-INFO.txt"
 {
-  echo "Victorious Bridge build information"
+  echo "ShizukuV build information"
   echo "commit: $commit$dirty"
   echo "branch: $(git rev-parse --abbrev-ref HEAD)"
   echo "built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo
 } > "$info"
 shopt -s nullglob
-for apk in manager/build/outputs/apk/*/victorious-bridge-*.apk; do
+for apk in manager/build/outputs/apk/*/shizukuv-*.apk; do
   base="$(basename "$apk")"; cp "$apk" "$out/$base"
   sig="UNSIGNED"; kind="unsigned release (cannot be installed; sign it first)"
   if [ -x "$APKSIGNER" ] && v="$("$APKSIGNER" verify --print-certs "$apk" 2>&1)"; then
-    if grep -q "CN=Android Debug" <<<"$v"; then sig="DEBUG-SIGNED"; kind="debug build, signed with the public Android debug key; NOT a production release"
+    if grep -qi "$DEBUG_SHA256" <<<"$v" || grep -q "CN=ShizukuV Debug Only\|CN=Android Debug" <<<"$v"; then sig="DEBUG-SIGNED"; kind="debug build, signed with the public debug-only key (keystore/README.md); NOT a production release"
     else sig="SIGNED"; kind="signed with a non-debug key (verify the fingerprint is the project's release key)"; fi
   fi
   case "$base" in *-release.apk) [ "$sig" != "SIGNED" ] && { echo "ERROR: $base is named release but is $sig" >&2; exit 1; } ;; esac

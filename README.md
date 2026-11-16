@@ -1,140 +1,107 @@
-# Victorious Bridge (ShizukuV)
+# ShizukuV
 
-**Team Victorious - Victorious Framework Work.** Victorious Bridge is the local privileged-access bridge for Victorious
-Android apps. It starts a small service with root or ADB authority, lets the owner authorize apps, and exposes a
-**controlled, typed API** whose permissions are enforced inside the privileged service itself.
+<p align="center"><img src="docs/assets/shizukuv-stamp.jpg" alt="ShizukuV stamp" width="256"></p>
 
-It is a fork of [Shizuku](https://github.com/RikkaApps/Shizuku) (Apache-2.0, (c) RikkaW). It is **not** Shizuku: it has its
-own application id (`ai.victorious.bridge`), permissions, provider authority and artwork so that it can be installed
-next to upstream Shizuku and never impersonates it. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+ShizukuV is the local privileged-access manager for Victorious Android apps (Team Victorious, Victorious Framework Work).
+You start a small service once with root or ADB authority, authorize apps one by one, and apps then call it through
+a controlled API whose permissions are enforced inside the service. It never gives anyone access to a device the owner
+has not set up and approved themselves.
 
-| Role | Project |
+| | |
 |---|---|
-| Local privileged access, app authorization, capabilities, diagnostics | **this repository** |
-| AI planning, orchestration, remote commands, fleet scheduling | [droidcommand-AI](https://github.com/Victorious93/droidcommand-AI) |
-| Terminal (`rish`) | [VictorSuite](https://github.com/Victorious93/VictorSuite) |
-| File access (scoped, chunked) | [File-Manager](https://github.com/Victorious93/File-Manager) |
+| App name | **ShizukuV** |
+| Application ID | `com.victorious.shizukuv` |
+| Permissions | `com.victorious.shizukuv.permission.MANAGER`, `com.victorious.shizukuv.permission.LEGACY_API_V1` |
+| Theme | Dark neon only: background `#0B0F1A`, cyan `#00E5FF`, magenta `#FF2BD6`. There is no light theme |
+| Languages | English only |
+| Min / compile SDK | 24 / 36 |
 
-## What is different from upstream
+## Attribution
 
-- **Scoped, service-enforced authorization.** Five choices: deny; until the service stops; 15 minutes; until revoked;
-  ask for every operation. Typed capabilities (diagnostics, settings, files, packages, shell) are checked on every request;
-  raw Binder forwarding, `newProcess` and UserServices stay a separately labelled **legacy full access**.
-- **Revoke all**: ends every grant, cancels queued/running operations and stops processes/services apps started.
-- **Startup repairs**: no main-thread blocking, bounded retries, readiness verification, explicit opt-in for any
-  debugging-setting change, specific failure reasons. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Activity history, diagnostics, settings profiles** with preview/apply/undo.
-- Pure-JVM `bridge-core` with 120+ unit tests; verified APK packaging; honest release signing.
+ShizukuV is a fork of **[Shizuku](https://github.com/RikkaApps/Shizuku)** by **RikkaApps / RikkaW**, licensed under the
+[Apache License 2.0](LICENSE). The upstream license, copyright headers and notices are kept unchanged; the vendored
+[Shizuku-API](https://github.com/RikkaApps/Shizuku-API) in `api/` is MIT-licensed (see `api/LICENSE` and `api/UPSTREAM.md`).
+Modified and added files are also Apache-2.0. This project is not affiliated with or endorsed by RikkaApps.
 
-## Documents
+Shizuku's design (a service started with ADB or root that hands out a Binder to approved apps) is theirs; read the upstream
+[README](https://github.com/RikkaApps/Shizuku#readme) and [site](https://shizuku.rikka.app/) for how it works.
 
-[User manual](docs/USER_MANUAL.md) · [Architecture](docs/ARCHITECTURE.md) · [Integration / SDK](docs/INTEGRATION.md) ·
-[Compatibility matrix](docs/COMPATIBILITY.md) · [Migration from Shizuku](docs/MIGRATION.md) ·
-[Toolchain](docs/TOOLCHAIN.md) · [Verification report](docs/VERIFICATION.md)
+### Upstream branding terms and how this fork complies
+
+Upstream's README states, under Apache 2.0 section 6:
+
+> You are **FORBIDDEN** to use `manager/src/main/res/mipmap*/ic_launcher*.png` image files, unless for displaying Shizuku itself.
+>
+> You are **FORBIDDEN** to use `Shizuku` as app name or use `moe.shizuku.privileged.api` as application id or declare
+> `moe.shizuku.manager.permission.*` permission.
+
+| Upstream restriction | ShizukuV |
+|---|---|
+| Upstream launcher mipmaps | Not shipped. Launcher and adaptive icons are the ShizukuV stamp (`docs/assets/shizukuv-stamp.jpg`) |
+| `moe.shizuku.privileged.api` | Not used. Application ID is `com.victorious.shizukuv` |
+| `moe.shizuku.manager.permission.*` | Not declared. Permissions are `com.victorious.shizukuv.permission.*` |
+| `Shizuku` as the app name | The app is named **ShizukuV**. This is the owner's chosen brand and it still contains the word "Shizuku"; whether upstream considers that acceptable has **not** been checked with RikkaApps. If upstream objects, change `DISPLAY_NAME` in `BridgeIdentity.kt`, `bridgeDisplayName` in `build.gradle` and `app_name` in `strings.xml` (a test keeps the three equal) |
+
+`IdentityConsistencyTest` fails the build if an upstream identifier reappears in the sources.
+
+## Compatibility with official Shizuku clients
+
+ShizukuV installs next to Shizuku and shares nothing with it (different package, permissions, provider authority, binder key,
+process name and state files). Apps built against the official `dev.rikka.shizuku:provider` look for
+`moe.shizuku.privileged.api`, so **they do not discover ShizukuV**. This is intentional. Apps that should use ShizukuV must be
+built against this repository's `:bridge-sdk` / vendored `api/provider`. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## Build
 
 ```sh
-git clone https://github.com/Victorious93/ShizukuV      # no submodules: the API sources are vendored (api/UPSTREAM.md)
-./gradlew :bridge-core:test                                # unit tests, any JDK 21
-./gradlew :manager:assembleDebug                           # secret-free debug APK
-./gradlew :manager:assembleRelease                         # UNSIGNED unless signing.properties supplies a real key
-bash scripts/verify-apk.sh && bash scripts/release-artifacts.sh   # packaging checks, SHA-256, signing labels
+git clone https://github.com/Victorious93/ShizukuV      # no submodules: the Shizuku-API sources are vendored (api/UPSTREAM.md)
+export ANDROID_HOME=...                                   # SDK 36, build-tools 36.0.0, NDK 29.0.13113456, CMake 3.31.6 (docs/TOOLCHAIN.md)
+./gradlew :bridge-core:test                               # unit tests (JDK 21)
+./gradlew :manager:assembleDebug                          # debug APK, no secrets required
+bash scripts/verify-apk.sh && bash scripts/release-artifacts.sh
 ```
 
-Required tools and exact versions: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md).
+The debug APK is `manager/build/outputs/apk/debug/shizukuv-v<version>-debug.apk`.
 
----
+### Signing
 
-# Upstream Shizuku README (retained for attribution and for the background it explains)
+* **Debug**: signed with the committed, public, debug-only key `keystore/shizukuv-debug.keystore` (password `android`,
+  alias `androiddebugkey`) so every machine and CI run produces the same signature. It is **not** a release key and proves
+  nothing about who built the APK. See [keystore/README.md](keystore/README.md).
+* **Release**: `:manager:assembleRelease` is **unsigned** unless a git-ignored `signing.properties` provides a real key.
+  There is no fallback to the debug key. No release key or secret is stored in this repository.
 
-## Shizuku
+### CI
 
-## Background
+`.github/workflows/app.yml` runs on every push and pull request: unit tests and lint, then a debug APK (uploaded as the
+`shizukuv-apks` artifact) after packaging checks. The `api` code is vendored, so no submodule or SSH access is needed; the
+checkout step is also configured to fetch submodules over HTTPS should one ever be added. Debug builds read no secrets.
 
-When developing apps that requires root, the most common method is to run some commands in the su shell. For example, there is an app that uses the `pm enable/disable` command to enable/disable components.
+## What is different from upstream
 
-This method has very big disadvantages:
+- Own identity, permissions, artwork and dark neon theme; English-only UI.
+- **Scoped, service-enforced authorization** with five choices (deny, until the service stops, 15 minutes, until revoked, ask
+  for every operation) and typed capabilities. Raw Binder forwarding, `newProcess` and UserServices stay a separately labelled
+  **legacy full access**.
+- Revoke-all, activity history, diagnostics and settings profiles; a pure-JVM `bridge-core` with unit tests.
 
-1. **Extremely slow** (Multiple process creation)
-2. Needs to process texts (**Super unreliable**)
-3. The possibility is limited to available commands
-4. Even if ADB has sufficient permissions, the app requires root privileges to run
+Details: [User manual](docs/USER_MANUAL.md) · [Architecture](docs/ARCHITECTURE.md) · [Integration / SDK](docs/INTEGRATION.md) ·
+[Compatibility](docs/COMPATIBILITY.md) · [Migration from Shizuku](docs/MIGRATION.md) · [Toolchain](docs/TOOLCHAIN.md) ·
+[Verification report](docs/VERIFICATION.md)
 
-Shizuku uses a completely different way. See detailed description below.
+| Role | Project |
+|---|---|
+| Local privileged access, app authorization, diagnostics | **this repository** |
+| AI planning, orchestration, fleet scheduling | [droidcommand-AI](https://github.com/Victorious93/droidcommand-AI) |
+| Terminal (`rish`) | [VictorSuite](https://github.com/Victorious93/VictorSuite) |
+| File access | [File-Manager](https://github.com/Victorious93/File-Manager) |
 
-## User guide & Download
+## Responsible use
 
-<https://shizuku.rikka.app/>
-
-## How does Shizuku work?
-
-First, we need to talk about how app use system APIs. For example, if the app wants to get installed apps, we all know we should use `PackageManager#getInstalledPackages()`. This is actually an interprocess communication (IPC) process of the app process and system server process, just the Android framework did the inner works for us.
-
-Android uses `binder` to do this type of IPC. `Binder` allows the server-side to learn the uid and pid of the client-side, so that the system server can check if the app has the permission to do the operation.
-
-Usually, if there is a "manager" (e.g., `PackageManager`) for apps to use, there should be a "service" (e.g., `PackageManagerService`) in the system server process. We can simply think if the app holds the `binder` of the "service", it can communicate with the "service". The app process will receive binders of system services on start.
-
-Shizuku guides users to run a process, Shizuku server, with root or ADB first. When the app starts, the `binder` to Shizuku server will also be sent to the app.
-
-The most important feature Shizuku provides is something like be a middle man to receive requests from the app, sent them to the system server, and send back the results. You can see the `transactRemote` method in `rikka.shizuku.server.ShizukuService` class, and `moe.shizuku.api.ShizukuBinderWrapper` class for the detail.
-
-So, we reached our goal, to use system APIs with higher permission. And to the app, it is almost identical to the use of system APIs directly.
-
-## Developer guide
-
-### API & sample
-
-https://github.com/RikkaApps/Shizuku-API
-
-### Migrating from pre-v11
-
-> Existing applications still works, of course.
-
-https://github.com/RikkaApps/Shizuku-API#migration-guide-for-existing-applications-use-shizuku-pre-v11
-
-### Attention
-
-1. ADB permissions are limited
-
-   ADB has limited permissions and different on various system versions. You can see permissions granted to ADB [here](https://github.com/aosp-mirror/platform_frameworks_base/blob/master/packages/Shell/AndroidManifest.xml).
-
-   Before calling the API, you can use `ShizukuService#getUid` to check if Shizuku is running user ADB, or use `ShizukuService#checkPermission` to check if the server has sufficient permissions.
-
-2. Hidden API limitation from Android 9
-
-   As of Android 9, the usage of the hidden APIs is limited for normal apps. Please use other methods (such as <https://github.com/LSPosed/AndroidHiddenApiBypass>).
-
-3. Android 8.0 & ADB
-
-   At present, the way Shizuku service gets the app process is to combine `IActivityManager#registerProcessObserver` and `IActivityManager#registerUidObserver` (26+) to ensure that the app process will be sent when the app starts. However, on API 26, ADB lacks permissions to use `registerUidObserver`, so if you need to use Shizuku in a process that might not be started by an Activity, it is recommended to trigger the send binder by starting a transparent activity.
-
-4. Direct use of `transactRemote` requires attention
-
-   * The API may be different under different Android versions, please be sure to check it carefully. Also, the `android.app.IActivityManager` has the aidl form in API 26 and later, and `android.app.IActivityManager$Stub` exists only on API 26.
-
-   * `SystemServiceHelper.getTransactionCode` may not get the correct transaction code, such as `android.content.pm.IPackageManager$Stub.TRANSACTION_getInstalledPackages` does not exist on API 25 and there is `android.content.pm.IPackageManager$Stub.TRANSACTION_getInstalledPackages_47` (this situation has been dealt with, but it is not excluded that there may be other circumstances). This problem is not encountered with the `ShizukuBinderWrapper` method.
-
-## Developing Shizuku itself
-
-### Build
-
-- Plain `git clone` is enough (the former `api` submodule is vendored; see `api/UPSTREAM.md`)
-- Run gradle task `:manager:assembleDebug` or `:manager:assembleRelease`
-
-The `:manager:assembleDebug` task generates a debuggable server. You can attach a debugger to `shizuku_server` to debug the server. Be aware that, in Android Studio, "Run/Debug configurations" - "Always install with package manager" should be checked, so that the server will use the latest code.
+ShizukuV is a tool for the owner of a device to grant their own apps elevated access on that device. It must not be used to
+gain access to a device you do not own or to bypass another person's security.
 
 ## License
 
-This fork keeps the upstream license and its Section 6 branding limits, and complies with them: it uses its own name,
-application id, permissions and artwork. Original Victorious additions are also Apache-2.0. `api/` is MIT (RikkaW).
-
-Upstream's terms, quoted unchanged:
-
-All code files in this project are licensed under Apache 2.0
-
-Under Apache 2.0 section 6, specifically:
-
-* You are **FORBIDDEN** to use `manager/src/main/res/mipmap*/ic_launcher*.png` image files, unless for displaying Shizuku itself.
-
-* You are **FORBIDDEN** to use `Shizuku` as app name or use `moe.shizuku.privileged.api` as application id or declare `moe.shizuku.manager.permission.*` permission.
+Apache License 2.0, see [LICENSE](LICENSE). Copyright of the original work remains with RikkaApps / RikkaW and the Shizuku
+contributors. The text of the upstream branding restrictions is quoted above, unchanged.
