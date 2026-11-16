@@ -49,14 +49,14 @@
         android:name=".ShizukuApplication"
         android:allowBackup="true"
         android:autoRevokePermissions="allowed"
-        android:banner="@drawable/ic_launcher"
+        android:banner="@mipmap/ic_launcher"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:directBootAware="true"
         android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_descriptor"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
-        android:localeConfig="@xml/locales_config"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning"
@@ -65,7 +65,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:banner="@drawable/banner"
+            android:banner="@mipmap/ic_launcher"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -176,7 +176,7 @@
 
         <provider
             android:name=".ShizukuManagerProvider"
-            android:authorities="${applicationId}.victoriousbridge"
+            android:authorities="${applicationId}.shizukuv"
             android:directBootAware="true"
             android:enabled="true"
             android:exported="true"
