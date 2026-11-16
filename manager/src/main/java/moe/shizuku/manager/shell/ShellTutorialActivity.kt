@@ -79,8 +79,14 @@ class ShellTutorialActivity : AppBarActivity() {
             val shName = "<font face=\"monospace\">$SH_NAME</font>"
             val dexName = "<font face=\"monospace\">$DEX_NAME</font>"
 
+            val mode = try {
+                when (rikka.shizuku.Shizuku.getUid()) { 0 -> getString(R.string.status_exec_mode_root); else -> getString(R.string.status_exec_mode_adb) }
+            } catch (_: Throwable) { getString(R.string.status_not_running) }
             summary.text =
-                getString(R.string.rish_description, shName).toHtml(HtmlCompat.FROM_HTML_OPTION_TRIM_WHITESPACE)
+                (getString(R.string.rish_description, shName) + "<p>" + getString(R.string.rish_identity_info,
+                    "<font face=\"monospace\">${moe.shizuku.manager.BuildConfig.APPLICATION_ID}</font>", mode,
+                    "<font face=\"monospace\">export RISH_APPLICATION_ID=&lt;terminal app package&gt;</font>"))
+                    .toHtml(HtmlCompat.FROM_HTML_OPTION_TRIM_WHITESPACE)
 
             text1.text = getString(R.string.terminal_tutorial_1, shName, dexName).toHtml()
 

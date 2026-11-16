@@ -20,6 +20,28 @@ class ApplicationManagementActivity : AppBarActivity() {
 
     private val viewModel by appsViewModel()
     private val adapter = AppsAdapter()
+    private var all: List<android.content.pm.PackageInfo> = emptyList()
+    private var query: String = ""
+
+    private fun applyFilter() {
+        val q = query.trim().lowercase()
+        val pm = packageManager
+        adapter.updateData(if (q.isEmpty()) all else all.filter {
+            val ai = it.applicationInfo
+            it.packageName.lowercase().contains(q) || ai?.loadLabel(pm)?.toString()?.lowercase()?.contains(q) == true
+        })
+    }
+
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menuInflater.inflate(R.menu.apps_menu, menu)
+        val sv = menu.findItem(R.id.action_search).actionView as androidx.appcompat.widget.SearchView
+        sv.queryHint = getString(R.string.apps_search_hint)
+        sv.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(q: String?) = true
+            override fun onQueryTextChange(q: String?): Boolean { query = q.orEmpty(); applyFilter(); return true }
+        })
+        return true
+    }
 
     private val binderDeadListener = Shizuku.OnBinderDeadListener {
         if (!isFinishing) {
@@ -43,7 +65,8 @@ class ApplicationManagementActivity : AppBarActivity() {
         viewModel.packages.observe(this) {
             when (it.status) {
                 Status.SUCCESS -> {
-                    adapter.updateData(it.data)
+                    all = it.data ?: emptyList()
+                    applyFilter()
                 }
                 Status.ERROR -> {
                     finish()
@@ -72,6 +95,7 @@ class ApplicationManagementActivity : AppBarActivity() {
         })
 
         Shizuku.addBinderDeadListener(binderDeadListener)
+        moe.shizuku.manager.bridge.BridgeNav.attach(this, R.id.nav_apps)
     }
 
     override fun onDestroy() {

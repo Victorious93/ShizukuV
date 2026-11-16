@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Victorious: no automatic uses-permission here. The LEGACY full-access permission is opt-in for the
+         consuming app; scoped capability clients must not carry it. -->
+
+    <application tools:ignore="AllowBackup,GoogleAppIndexingWarning">
+        <meta-data
+            android:name="ai.victorious.bridge.client.SUPPORT"
+            android:value="true" />
+    </application>
+
+</manifest>

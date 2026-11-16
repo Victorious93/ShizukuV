@@ -23,14 +23,15 @@ import rikka.hidden.compat.PackageManagerApis;
 import rikka.hidden.compat.PermissionManagerApis;
 import rikka.hidden.compat.adapter.ProcessObserverAdapter;
 import rikka.hidden.compat.adapter.UidObserverAdapter;
+import ai.victorious.bridge.core.BridgeIdentity;
 import rikka.shizuku.server.util.Logger;
 
 public class BinderSender {
 
     private static final Logger LOGGER = new Logger("BinderSender");
 
-    private static final String PERMISSION_MANAGER = "moe.shizuku.manager.permission.MANAGER";
-    private static final String PERMISSION = "moe.shizuku.manager.permission.API_V23";
+    private static final String PERMISSION_MANAGER = BridgeIdentity.PERMISSION_MANAGER;
+    private static final String PERMISSION = BridgeIdentity.PERMISSION_LEGACY_API;
 
     private static ShizukuService sShizukuService;
 
@@ -147,11 +148,11 @@ public class BinderSender {
 
         int userId = uid / 100000;
         for (String packageName : packages) {
-            PackageInfo pi = PackageManagerApis.getPackageInfoNoThrow(packageName, PackageManager.GET_PERMISSIONS, userId);
-            if (pi == null || pi.requestedPermissions == null)
+            PackageInfo pi = PackageManagerApis.getPackageInfoNoThrow(packageName, PackageManager.GET_PERMISSIONS | PackageManager.GET_META_DATA, userId);
+            if (pi == null)
                 continue;
 
-            if (ArraysKt.contains(pi.requestedPermissions, PERMISSION_MANAGER)) {
+            if (pi.requestedPermissions != null && ArraysKt.contains(pi.requestedPermissions, PERMISSION_MANAGER)) {
                 boolean granted;
                 if (pid == -1)
                     granted = PermissionManagerApis.checkPermission(PERMISSION_MANAGER, uid) == PackageManager.PERMISSION_GRANTED;
@@ -162,7 +163,10 @@ public class BinderSender {
                     ShizukuService.sendBinderToManger(sShizukuService, userId);
                     return;
                 }
-            } else if (ArraysKt.contains(pi.requestedPermissions, PERMISSION)) {
+            } else if (ShizukuService.isBridgeClient(pi)) {
+                // Victorious: scoped clients do not request the legacy permission, so the Binder is delivered to every
+                // app that declares the bridge provider (meta-data) or the legacy permission. Delivery is not authority:
+                // every call is still checked against the grant store.
                 ShizukuService.sendBinderToUserApp(sShizukuService, packageName, userId);
                 return;
             }

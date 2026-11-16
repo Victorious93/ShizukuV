@@ -10,12 +10,11 @@ import rikka.shizuku.ShizukuProvider
 import rikka.shizuku.server.ktx.workerHandler
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 class ShizukuManagerProvider : ShizukuProvider() {
 
     companion object {
-        private const val EXTRA_BINDER = "moe.shizuku.privileged.api.intent.extra.BINDER"
+        private const val EXTRA_BINDER = ai.victorious.bridge.core.BridgeIdentity.EXTRA_BINDER
         private const val METHOD_SEND_USER_SERVICE = "sendUserService"
     }
 
@@ -58,12 +57,20 @@ class ShizukuManagerProvider : ShizukuProvider() {
 
                 Shizuku.addBinderReceivedListenerSticky(listener, workerHandler)
 
+                // Victorious: await() reports expiry through its boolean result, not an exception. The old code ignored it and
+                // returned an empty "success" Bundle after a timeout, and leaked the listener.
                 return try {
-                    countDownLatch.await(5, TimeUnit.SECONDS)
-                    reply
-                } catch (e: TimeoutException) {
-                    LOGGER.e(e, "Binder not received in 5s")
+                    if (countDownLatch.await(5, TimeUnit.SECONDS)) {
+                        reply
+                    } else {
+                        LOGGER.e("Binder not received in 5s")
+                        null
+                    }
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
                     null
+                } finally {
+                    Shizuku.removeBinderReceivedListener(listener)
                 }
             } catch (e: Throwable) {
                 LOGGER.e(e, "sendUserService")

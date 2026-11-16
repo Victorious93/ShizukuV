@@ -2,6 +2,13 @@ plugins {
     id("idea")
 }
 
+// Victorious Framework Work: the one place the Gradle side reads the bridge identity from.
+// bridge-core's BridgeIdentity.kt must agree; IdentityConsistencyTest fails the build if any copy drifts.
+ext {
+    bridgeApplicationId = 'ai.victorious.bridge'
+    bridgeDisplayName = 'Victorious Bridge'
+}
+
 idea.module {
     excludeDirs += file('out')
 }

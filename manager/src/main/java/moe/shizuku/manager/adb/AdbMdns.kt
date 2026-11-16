@@ -15,38 +15,75 @@ import java.net.ServerSocket
 @RequiresApi(Build.VERSION_CODES.R)
 class AdbMdns(
     context: Context, private val serviceType: String,
-    private val observer: Observer<Int>
+    /** Called once if discovery itself cannot start (NSD error). Lets callers fail fast instead of waiting out a timeout. */
+    private val onError: ((String) -> Unit)? = null,
+    // Kept last so existing `AdbMdns(ctx, type) { port -> ... }` trailing-lambda callers still bind to the observer.
+    private val observer: Observer<Int>,
 ) {
 
-    private var registered = false
-    private var running = false
+    private val lock = Any()
+
+    // Victorious: the previous implementation only stopped discovery if onDiscoveryStarted had already fired. A stop() that
+    // raced the (asynchronous) start callback left the DiscoveryListener registered forever. These flags make stop()
+    // correct in every interleaving: [startRequested] = discoverServices() was called and not yet stopped,
+    // [discoveryActive] = the platform confirmed it started.
+    private var startRequested = false
+    private var discoveryActive = false
     private var serviceName: String? = null
     private val listener = DiscoveryListener(this)
     private val nsdManager: NsdManager = context.getSystemService(NsdManager::class.java)
 
     fun start() {
-        if (running) return
-        running = true
-        if (!registered) {
+        synchronized(lock) {
+            if (startRequested) return
+            startRequested = true
+        }
+        try {
             nsdManager.discoverServices(serviceType, NsdManager.PROTOCOL_DNS_SD, listener)
+        } catch (e: Throwable) {
+            synchronized(lock) { startRequested = false }
+            onError?.invoke("discoverServices failed: ${e.javaClass.simpleName}")
         }
     }
 
     fun stop() {
-        if (!running) return
-        running = false
-        if (registered) {
+        val stopNow: Boolean
+        synchronized(lock) {
+            if (!startRequested) return
+            startRequested = false
+            stopNow = discoveryActive
+        }
+        // If the platform has not confirmed the start yet, onDiscoveryStart() sees startRequested == false and stops it.
+        if (stopNow) stopPlatformDiscovery()
+    }
+
+    private fun stopPlatformDiscovery() {
+        try {
             nsdManager.stopServiceDiscovery(listener)
+        } catch (e: Throwable) {
+            Log.w(TAG, "stopServiceDiscovery: ${e.javaClass.simpleName}")
         }
     }
 
     private fun onDiscoveryStart() {
-        registered = true
+        val shouldStop: Boolean
+        synchronized(lock) {
+            discoveryActive = true
+            shouldStop = !startRequested
+        }
+        if (shouldStop) stopPlatformDiscovery()
     }
 
     private fun onDiscoveryStop() {
-        registered = false
+        synchronized(lock) { discoveryActive = false }
     }
+
+    private fun onDiscoveryFailed(errorCode: Int) {
+        synchronized(lock) { startRequested = false; discoveryActive = false }
+        onError?.invoke("discovery failed ($errorCode)")
+    }
+
+    private val running: Boolean get() = synchronized(lock) { startRequested }
 
     private fun onServiceFound(info: NsdServiceInfo) {
         nsdManager.resolveService(info, ResolveListener(this))
@@ -89,6 +126,7 @@ class AdbMdns(
 
         override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
             Log.v(TAG, "onStartDiscoveryFailed: $serviceType, $errorCode")
+            adbMdns.onDiscoveryFailed(errorCode)
         }
 
         override fun onDiscoveryStopped(serviceType: String) {

@@ -121,7 +121,7 @@ class AdbPairingService : Service() {
     private fun startSearch() {
         if (started) return
         started = true
-        adbMdns = AdbMdns(this, AdbMdns.TLS_PAIRING, observer).apply { start() }
+        adbMdns = AdbMdns(this, AdbMdns.TLS_PAIRING, observer = observer).apply { start() }
     }
 
     private fun stopSearch() {

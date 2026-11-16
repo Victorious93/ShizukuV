@@ -16,6 +16,7 @@ class SettingsActivity : AppBarFragmentActivity() {
         super.onCreate(savedInstanceState)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        moe.shizuku.manager.bridge.BridgeNav.attach(this, R.id.nav_settings)
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()

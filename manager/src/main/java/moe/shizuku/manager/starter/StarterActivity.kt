@@ -51,7 +51,7 @@ class StarterActivity : AppBarActivity() {
 
         viewModel.output.observe(this) {
             val output = it.data!!.trim()
-            if (output.endsWith("info: shizuku_starter exit with 0")) {
+            if (output.endsWith("info: victorious_bridge_starter exit with 0")) {
                 viewModel.appendOutput("")
                 viewModel.appendOutput("Waiting for service...")
 

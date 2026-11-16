@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 import kotlin.collections.ArraysKt;
+import ai.victorious.bridge.core.BridgeIdentity;
 import rikka.hidden.compat.PackageManagerApis;
 import rikka.hidden.compat.PermissionManagerApis;
 import rikka.hidden.compat.UserManagerApis;
@@ -39,7 +40,7 @@ public class ShizukuConfigManager extends ConfigManager {
 
     private static final long WRITE_DELAY = 10 * 1000;
 
-    private static final File FILE = new File("/data/user_de/0/com.android.shell/shizuku.json");
+    private static final File FILE = new File(BridgeIdentity.SERVER_CONFIG_FILE);
     private static final AtomicFile ATOMIC_FILE = new AtomicFile(FILE);
 
     public static ShizukuConfig load() {

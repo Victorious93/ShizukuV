@@ -10,6 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import moe.shizuku.manager.Helps
 import moe.shizuku.manager.R
 import moe.shizuku.manager.authorization.AuthorizationManager
@@ -50,11 +51,32 @@ class AppViewHolder(private val binding: AppListItemBinding) : BaseViewHolder<Pa
 
     override fun onClick(v: View) {
         val context = v.context
+        val label = ai.loadLabel(context.packageManager)
+        val has = AuthorizationManager.granted(packageName, uid)
+        val b = MaterialAlertDialogBuilder(context).setTitle(label)
+            .setMessage(packageName + "\n\n" + AuthorizationManager.accessSummary(context, uid) + if (has) "\n\n" + context.getString(R.string.apps_detail_revoke_message) else "\n\n" + context.getString(R.string.bridge_legacy_warning))
+            .setNeutralButton(android.R.string.cancel, null)
+        if (has) {
+            b.setPositiveButton(R.string.apps_revoke) { _, _ ->
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    runCatching { moe.shizuku.manager.bridge.BridgeAdmin.revoke(uid) }
+                    AuthorizationManager.refreshGrants()
+                    itemView.post { adapter.notifyItemChanged(adapterPosition, Any()) }
+                }
+            }
+        } else {
+            // Explicit, labelled legacy grant (until revoked). Scoped grants are requested by the app itself and approved in the prompt.
+            b.setPositiveButton(R.string.apps_access_legacy) { _, _ -> grantLegacy(context) }
+        }
+        b.show()
+    }
+
+    private fun grantLegacy(context: android.content.Context) {
         try {
-            if (AuthorizationManager.granted(packageName, uid)) {
-                AuthorizationManager.revoke(packageName, uid)
-            } else {
-                AuthorizationManager.grant(packageName, uid)
+            AuthorizationManager.grant(packageName, uid)
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                AuthorizationManager.refreshGrants()
+                itemView.post { adapter.notifyItemChanged(adapterPosition, Any()) }
             }
         } catch (e: SecurityException) {
             val uid = try {
@@ -90,9 +112,10 @@ class AppViewHolder(private val binding: AppListItemBinding) : BaseViewHolder<Pa
         } else {
             ai.loadLabel(pm)
         }
-        pkg.text = ai.packageName
+        pkg.text = ai.packageName + "\n" + AuthorizationManager.accessSummary(itemView.context, uid)
         switchWidget.isChecked = AuthorizationManager.granted(packageName, uid)
-        root.visibility = if (ai.metaData != null && ai.metaData.getBoolean("moe.shizuku.client.V3_REQUIRES_ROOT")) View.VISIBLE else View.GONE
+        switchWidget.contentDescription = AuthorizationManager.accessSummary(itemView.context, uid)
+        root.visibility = if (ai.metaData != null && ai.metaData.getBoolean("ai.victorious.bridge.client.REQUIRES_ROOT")) View.VISIBLE else View.GONE
 
         loadIconJob = AppIconCache.loadIconBitmapAsync(context, ai, ai.uid / 100000, icon)
     }

@@ -4,6 +4,11 @@ project("shizuku")
 
 set(CMAKE_CXX_STANDARD 17)
 
+if (NOT DEFINED BRIDGE_PACKAGE_NAME)
+    message(FATAL_ERROR "BRIDGE_PACKAGE_NAME is required")
+endif ()
+add_definitions(-DBRIDGE_PACKAGE_NAME="${BRIDGE_PACKAGE_NAME}")
+
 add_compile_options(-Werror=format -fdata-sections -ffunction-sections -fno-exceptions -fno-rtti -fno-threadsafe-statics)
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")

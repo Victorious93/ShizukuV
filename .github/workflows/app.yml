@@ -3,52 +3,114 @@ name: App
 on:
   push:
     paths-ignore:
-      - '.github/ISSUE_TEMPLATE'
+      - '.github/ISSUE_TEMPLATE/**'
+  pull_request:
+
+# Debug builds need no secrets. Nothing here reads signing material on pull requests or non-default branches.
+permissions:
+  contents: read
 
 jobs:
-  build:
+  test:
+    name: Unit tests + lint
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
-          fetch-depth: 0
-      - name: Setup Java
-        uses: actions/setup-java@v4
+          fetch-depth: 0          # versionCode/versionName come from git history
+      - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '21'
-      - name: Write key
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: SDK, NDK and CMake (versions pinned in docs/TOOLCHAIN.md)
         run: |
-          echo KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }} > signing.properties
-          echo KEYSTORE_ALIAS=${{ secrets.KEYSTORE_ALIAS }} >> signing.properties
-          echo KEYSTORE_ALIAS_PASSWORD='${{ secrets.KEYSTORE_ALIAS_PASSWORD }}' >> signing.properties
-          echo KEYSTORE_FILE=../key.jks >> signing.properties
-          echo ${{ secrets.KEYSTORE }} | base64 --decode > key.jks
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.31.6"
+      - name: Unit tests (bridge-core: grants, scope, startup, profiles, identity + contract consistency)
+        run: ./gradlew :bridge-core:test --stacktrace
+      - name: Android lint
+        run: ./gradlew :manager:lintDebug :server:lintDebug :bridge-sdk:lintDebug --continue
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          dependency-graph: generate-and-submit
-          build-scan-publish: true
-          build-scan-terms-of-use-url: "https://gradle.com/terms-of-service"
-          build-scan-terms-of-use-agree: "yes"
-      - name: Build with Gradle
-        id: buildWithGradle
+          name: test-and-lint-reports
+          path: |
+            bridge-core/build/reports/tests
+            */build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+
+  build:
+    name: Build APKs
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: SDK, NDK and CMake
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
-          echo 'android.sdk.channel=3' >> gradle.properties
-          echo 'android.native.buildOutput=verbose' >> gradle.properties
-          echo 'org.gradle.caching=true' >> gradle.properties
-          echo 'org.gradle.parallel=true' >> gradle.properties
-          ./gradlew :manager:assemble
-          releaseName=`ls manager/build/outputs/apk/release/shizuku*-v*-release.apk | awk -F '(/|-release.apk)' '{print $6}'` && echo "releaseName=$releaseName" >> $GITHUB_OUTPUT
-      - name: Upload release
-        if: success()
-        uses: actions/upload-artifact@v4
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.31.6"
+      - name: Debug APK (secret-free) and unsigned release APK
+        run: ./gradlew :manager:assembleDebug :manager:assembleRelease --stacktrace
+      - name: Verify packaging (identity, ABIs, native libs, no upstream identifiers)
+        run: bash scripts/verify-apk.sh
+      - name: Checksums and signing labels
+        run: bash scripts/release-artifacts.sh
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.buildWithGradle.outputs.releaseName }}
-          path: "manager/build/outputs"
-          compression-level: 9
+          name: victorious-bridge-apks
+          path: out/artifacts/*
+          compression-level: 0
+
+  # A production-signed release is built only on the default branch and only if the repository provides the key.
+  # Without it the job still succeeds with the unsigned release and says so; it never falls back to the debug key.
+  release-signed:
+    name: Signed release (default branch, key required)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    needs: build
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: SDK, NDK and CMake
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.31.6"
+      - name: Write signing.properties (only if the secrets exist)
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+          KEYSTORE_ALIAS_PASSWORD: ${{ secrets.KEYSTORE_ALIAS_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::warning::No release key configured; building the UNSIGNED release only."
+          else
+            printf '%s' "$KEYSTORE" | base64 --decode > key.jks
+            { echo "KEYSTORE_FILE=../key.jks"; echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "KEYSTORE_ALIAS=$KEYSTORE_ALIAS"; echo "KEYSTORE_ALIAS_PASSWORD=$KEYSTORE_ALIAS_PASSWORD"; } > signing.properties
+          fi
+      - run: ./gradlew :manager:assembleRelease --stacktrace
+      - run: bash scripts/release-artifacts.sh
+      - name: Remove signing material
+        if: always()
+        run: rm -f key.jks signing.properties
+      - uses: actions/upload-artifact@v4
+        with:
+          name: victorious-bridge-release
+          path: out/artifacts/*
+          compression-level: 0

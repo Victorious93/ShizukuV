@@ -44,6 +44,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private lateinit var translationContributorsPreference: Preference
     private lateinit var useSystemColorPreference: TwoStatePreference
 
+    private val pickProfile = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) moe.shizuku.manager.bridge.ProfileFlow.import(requireContext(), uri)
+    }
+    private val saveSample = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) runCatching { requireContext().contentResolver.openOutputStream(uri)?.use { it.write(moe.shizuku.manager.bridge.ProfileFlow.SAMPLE.toByteArray()) } }
+    }
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         val context = requireContext()
 
@@ -86,6 +93,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
 
         setupLocalePreference()
+
+        findPreference<ListPreference>("backend_policy")!!.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, v ->
+            val p = ai.victorious.bridge.core.BackendRequirement.fromId(v as? String)
+            Thread { runCatching { moe.shizuku.manager.bridge.BridgeAdmin.setBackendPolicy(p) } }.start()
+            true
+        }
+        findPreference<Preference>("profile_import")!!.setOnPreferenceClickListener { pickProfile.launch(arrayOf("application/json", "text/plain", "*/*")); true }
+        findPreference<Preference>("profile_undo")!!.setOnPreferenceClickListener { moe.shizuku.manager.bridge.ProfileFlow.undoLast(context); true }
+        findPreference<Preference>("profile_export_sample")!!.setOnPreferenceClickListener { saveSample.launch("bridge-profile.json"); true }
 
         nightModePreference.value = ShizukuSettings.getNightMode()
         nightModePreference.onPreferenceChangeListener =
@@ -147,7 +163,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     ): RecyclerView {
         val recyclerView = super.onCreateRecyclerView(inflater, parent, savedInstanceState) as BorderRecyclerView
         recyclerView.fixEdgeEffect()
-        recyclerView.addEdgeSpacing(bottom = 8f, unit = TypedValue.COMPLEX_UNIT_DIP)
+        recyclerView.addEdgeSpacing(bottom = 88f, unit = TypedValue.COMPLEX_UNIT_DIP)
 
         val lp = recyclerView.layoutParams
         if (lp is FrameLayout.LayoutParams) {

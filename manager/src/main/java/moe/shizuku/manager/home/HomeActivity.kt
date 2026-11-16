@@ -47,6 +47,7 @@ abstract class HomeActivity : AppBarActivity() {
 
         val binding = HomeActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        moe.shizuku.manager.bridge.BridgeNav.attach(this, R.id.nav_status)
 
         homeModel.serviceStatus.observe(this) {
             if (it.status == Status.SUCCESS) {

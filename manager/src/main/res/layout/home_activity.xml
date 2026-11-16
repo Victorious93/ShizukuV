@@ -9,6 +9,7 @@
     android:clipToPadding="false"
     android:paddingStart="@dimen/home_padding"
     android:paddingTop="?actionBarSize"
+    android:paddingBottom="88dp"
     android:paddingEnd="@dimen/home_padding"
     android:scrollbarStyle="insideOverlay"
     android:scrollbars="vertical"
