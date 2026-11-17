@@ -77,6 +77,14 @@ The debug APK is `manager/build/outputs/apk/debug/shizukuv-v<version>-debug.apk`
 `shizukuv-apks` artifact) after packaging checks. The `api` code is vendored, so no submodule or SSH access is needed; the
 checkout step is also configured to fetch submodules over HTTPS should one ever be added. Debug builds read no secrets.
 
+## Optional: start at boot on rooted devices
+
+`module/` contains an **optional** Magisk / KernelSU / APatch module that starts the ShizukuV server at boot on a device you have
+rooted yourself. The app works fully without it (ADB, Wireless debugging and the in-app root start are unchanged). The module runs
+the same starter command as the app's root start, adds no setuid files and no SELinux changes, and logs to
+`/data/local/tmp/shizukuv-module.log`. Build it with `bash module/build.sh` or download `shizukuv-root-module` from the *Root module*
+workflow. Install, uninstall and troubleshooting: [docs/ROOT-MODULE.md](docs/ROOT-MODULE.md).
+
 ## What is different from upstream
 
 - Own identity, permissions, artwork and dark neon theme; English-only UI.
@@ -86,7 +94,7 @@ checkout step is also configured to fetch submodules over HTTPS should one ever 
 - Revoke-all, activity history, diagnostics and settings profiles; a pure-JVM `bridge-core` with unit tests.
 
 Details: [User manual](docs/USER_MANUAL.md) · [Architecture](docs/ARCHITECTURE.md) · [Integration / SDK](docs/INTEGRATION.md) ·
-[Compatibility](docs/COMPATIBILITY.md) · [Migration from Shizuku](docs/MIGRATION.md) · [Toolchain](docs/TOOLCHAIN.md) ·
+[Compatibility](docs/COMPATIBILITY.md) · [Migration from Shizuku](docs/MIGRATION.md) · [Optional root module](docs/ROOT-MODULE.md) · [Toolchain](docs/TOOLCHAIN.md) ·
 [Verification report](docs/VERIFICATION.md)
 
 | Role | Project |

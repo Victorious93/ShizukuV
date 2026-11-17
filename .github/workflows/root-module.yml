@@ -1,0 +1,47 @@
+name: Root module
+
+# Optional Magisk / KernelSU / APatch module (module/). Needs no secrets and no Android toolchain.
+on:
+  push:
+    paths:
+      - 'module/**'
+      - '.github/workflows/root-module.yml'
+  pull_request:
+    paths:
+      - 'module/**'
+      - '.github/workflows/root-module.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  module:
+    name: ShellCheck, host tests, build zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # version and versionCode come from git history, like the app
+      - name: ShellCheck (POSIX sh for files that run on the device)
+        run: |
+          shellcheck --version
+          shellcheck -s sh -x module/service.sh module/uninstall.sh module/customize.sh module/META-INF/com/google/android/update-binary
+      - name: ShellCheck (bash for host-side scripts)
+        run: shellcheck -s bash module/build.sh module/tests/service-test.sh
+      - name: Host-side tests of service.sh with stubbed getprop, pm and starter (dash)
+        run: SH=dash bash module/tests/service-test.sh
+      - name: Build shizukuv-root-module.zip (reproducibility and layout are checked by the script)
+        run: |
+          bash module/build.sh
+          bash module/build.sh /tmp/second.zip
+          cmp out/shizukuv-root-module.zip /tmp/second.zip
+          unzip -l out/shizukuv-root-module.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shizukuv-root-module
+          path: |
+            out/shizukuv-root-module.zip
+            out/shizukuv-root-module.zip.sha256
+          if-no-files-found: error
+          compression-level: 0
