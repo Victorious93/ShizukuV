@@ -1,5 +1,22 @@
 # Verification report
 
+## Optional root module (`module/`, see [ROOT-MODULE.md](ROOT-MODULE.md))
+
+Run on Linux x86_64, OpenJDK 21, ShellCheck 0.11.0, dash, Android SDK 36 / build-tools 36.0.0 / NDK 29.0.13113456 / CMake 3.31.6.
+
+| Check | Result |
+|---|---|
+| `shellcheck -s sh -x` on `service.sh`, `uninstall.sh`, `customize.sh`, `update-binary` | no findings |
+| `shellcheck -s bash` on `build.sh`, `tests/service-test.sh` | no findings |
+| `SH=dash bash module/tests/service-test.sh` (stubbed `getprop`, `pm`, `pidof`, starter) | 17 of 17 checks: base.apk chosen over split APKs, ABI choice, exact `--apk=` argument, app missing, server already running, starter failure with retries, boot never completes, starter library missing; `service.sh` always exits 0 |
+| `bash module/build.sh`, built twice 2 s apart | identical SHA-256; 6 entries (`META-INF/.../update-binary`, `updater-script`, `customize.sh`, `module.prop`, `service.sh`, `uninstall.sh`); scripts stored `rwxr-xr-x`; `module.prop` id/version/versionCode valid |
+| `./gradlew :bridge-core:test` | 127 tests, 0 failures |
+| `./gradlew :manager:assembleDebug`, `bash scripts/verify-apk.sh` | built; packaging checks passed. The APK has `extractNativeLibs=true` and `lib/<abi>/libshizuku.so` for all four ABIs, which is what `service.sh` looks for |
+
+**Not verified**: flashing in Magisk, KernelSU or APatch; the installer scripts (`customize.sh`, `update-binary`) running inside a
+manager; the boot start on any real device or emulator; SELinux behaviour of the starter under each root solution; a real
+`pm`, `getprop` or starter (stubs only). The host test checks the script's logic, not Android behaviour.
+
 ## ShizukuV foundation rebrand (identity, icons, theme, English-only, debug signing, CI)
 
 Run on Linux x86_64, OpenJDK 21, Android SDK 36 / build-tools 36.0.0 / NDK 29.0.13113456 / CMake 3.31.6.
