@@ -1,0 +1,6 @@
+id=shizukuv
+name=ShizukuV Boot Start
+version=dev
+versionCode=1
+author=Victorious93
+description=OPTIONAL. Starts the ShizukuV server at boot on a rooted device you control. The app works fully without this module (ADB, wireless debugging or in-app root start).
