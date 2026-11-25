@@ -1,6 +1,23 @@
+<div align="center">
+
+<img src="docs/assets/shizukuv-stamp.jpg" alt="ShizukuV stamp" width="256">
+
 # ShizukuV
 
-<p align="center"><img src="docs/assets/shizukuv-stamp.jpg" alt="ShizukuV stamp" width="256"></p>
+**A local privileged-access manager for Victorious Android apps — a fork of Shizuku.**
+
+Works on its own; fleet integration is optional
+
+<p>
+  <img src="https://img.shields.io/badge/Release-no_release_yet-FF2BD6?style=flat-square&labelColor=0B0F1A" alt="No release yet" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-FF2BD6?style=flat-square&labelColor=0B0F1A" alt="License: Apache 2.0" /></a>
+  <a href="https://github.com/Victorious93/ShizukuV/actions/workflows/app.yml"><img src="https://img.shields.io/github/actions/workflow/status/Victorious93/ShizukuV/app.yml?style=flat-square&label=CI&labelColor=0B0F1A&color=00E5FF" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/Android-7.0%2B_(API_24)-00E5FF?style=flat-square&labelColor=0B0F1A" alt="Android 7.0+" />
+  <a href="https://github.com/RikkaApps/Shizuku"><img src="https://img.shields.io/badge/based_on-Shizuku-00E5FF?style=flat-square&labelColor=0B0F1A" alt="Based on Shizuku" /></a>
+  <a href="https://victorious-framework.pages.dev"><img src="https://img.shields.io/badge/Fleet-Victorious_Framework-FF2BD6?style=flat-square&labelColor=0B0F1A" alt="Victorious Framework fleet" /></a>
+</p>
+
+</div>
 
 ShizukuV is the local privileged-access manager for Victorious Android apps (Team Victorious, Victorious Framework Work).
 You start a small service once with root or ADB authority, authorize apps one by one, and apps then call it through
@@ -108,6 +125,14 @@ Details: [User manual](docs/USER_MANUAL.md) · [Architecture](docs/ARCHITECTURE.
 
 ShizukuV is a tool for the owner of a device to grant their own apps elevated access on that device. It must not be used to
 gain access to a device you do not own or to bypass another person's security.
+
+## Victorious fleet
+
+ShizukuV is part of the [Victorious Framework](https://victorious-framework.pages.dev), a family of Android and PC tools by Don Victor. **It works standalone; fleet integrations are optional.** Related: [droidcommand-AI](https://github.com/Victorious93/droidcommand-AI), [VictorSuite](https://github.com/Victorious93/VictorSuite), [File-Manager](https://github.com/Victorious93/File-Manager). The roster is in [victorious-fleet](https://github.com/Victorious93/victorious-fleet) and live status is in [fleet-manifest](https://github.com/Victorious93/fleet-manifest).
+
+## Contributing
+
+Issues and pull requests are welcome. Please describe what you changed and why, and keep documentation accurate to the code — do not invent features, builds, or test results.
 
 ## License
 
